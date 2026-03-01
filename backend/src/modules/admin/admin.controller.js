@@ -368,6 +368,7 @@ exports.getAllVehiclesAnalytics = (req, res) => {
         v.vehicle_number,
         v.brand,
         v.model_name,
+        v.isBlocked,
         u.name as owner_name,
         u.address as owner_address,
         COUNT(b.id) as total_bookings
@@ -401,6 +402,7 @@ exports.getAllOwnersAnalytics = (req, res) => {
         u.name,
         u.phone_number,
         u.address,
+        u.isBlocked,
         COUNT(DISTINCT v.id) as vehicles_count,
         COUNT(b.id) as total_bookings
       FROM users u
@@ -429,6 +431,7 @@ exports.getAllUsersAnalytics = (req, res) => {
         u.name,
         u.phone_number,
         u.address,
+        u.isBlocked,
         COUNT(b.id) as bookings_count
       FROM users u
       LEFT JOIN bookings b ON b.user_id = u.id
