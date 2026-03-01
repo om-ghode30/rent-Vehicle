@@ -137,7 +137,8 @@ const login = (req, res) => {
 
   res.json({
     success: true,
-    message: "Login successful"
+    message: "Login successful",
+    role: user.role
   });
 };
 // =============================
