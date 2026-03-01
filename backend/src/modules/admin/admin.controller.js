@@ -114,7 +114,7 @@ exports.rejectVehicle = (req, res) => {
   const vehicleId = req.params.id;
 
   db.prepare(`
-    UPDATE vehicles SET status = 'REJECTED' WHERE id = ?
+    DELETE FROM vehicles WHERE id = ?
   `).run(vehicleId);
 
   res.json({ success: true, message: "Vehicle rejected successfully" });
@@ -291,7 +291,7 @@ exports.rejectUser = (req, res) => {
   const userId = req.params.id;
 
   db.prepare(`
-    UPDATE users SET isApproved = 0 WHERE id = ?
+    DELETE FROM users WHERE id = ?
   `).run(userId);
 
   res.json({ success: true, message: "User rejected successfully" });
