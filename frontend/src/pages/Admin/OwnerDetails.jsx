@@ -53,7 +53,7 @@ export default function OwnerDetails() {
               <li
                 key={vId}
                 className="text-blue-600 cursor-pointer hover:underline"
-                onClick={() => navigate(`/admin/vehicle/${vId}`)}
+                onClick={() => navigate(`/admin/vehicles/${vId}`)}
               >
                 Vehicle ID: {vId}
               </li>

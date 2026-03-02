@@ -45,17 +45,29 @@ export const getPublicVehicle = (id) =>
 
 // ---- OWNER APIs ----
 export const addVehicleDetails = (formData) =>
-  API.post("/vehicles", formData, {
+  API.post("/owner/vehicles", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
+// NOTE: backend currently accepts images during vehicle creation at POST /api/owner/vehicles
+// there's no explicit edit-images route in the backend owner routes. We keep this helper
+// in case a separate upload route exists at /api/owner/vehicles/:id/images in future.
 export const addVehicleImages = (vehicleId, formData) =>
-  API.post(`/vehicles/${vehicleId}/images`, formData, {
+  API.post(`/owner/vehicles/${vehicleId}/images`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
 export const getMyVehicles = () =>
-  API.get("/vehicles/my");
+  API.get("/owner/vehicles");
+
+export const getOwnerBookings = () =>
+  API.get("/owner/bookings");
+
+export const getOwnerBookingDetails = (id) =>
+  API.get(`/owner/bookings/${id}`);
+
+export const toggleVehicleAvailability = (id, body) =>
+  API.patch(`/owner/vehicles/${id}/availability`, body);
 
 
 // ---- ADMIN: Vehicles ----
@@ -119,11 +131,18 @@ export const getOwnerDetails = (id) =>
   API.get(`/admin/owners/${id}`);
 
 // ---- ADMIN: Status toggles (block/unblock) ----
-export const toggleUserBlocked = (id, isBlocked) =>
-  API.patch(`/admin/users/${id}/status`, { isBlocked });
+export const toggleUserBlocked = (id, isBlocked) => {
+  // Backend expects { action: boolean }
+  // action = true => unblock (sets isBlocked = 0)
+  // action = false => block (sets isBlocked = 1)
+  const action = isBlocked === 1; // if currently blocked (1) then action true to unblock
+  return API.patch(`/admin/users/${id}/status`, { action });
+};
 
-export const toggleVehicleBlocked = (id, isBlocked) =>
-  API.patch(`/admin/vehicles/${id}/status`, { isBlocked });
+export const toggleVehicleBlocked = (id, isBlocked) => {
+  const action = isBlocked === 1;
+  return API.patch(`/admin/vehicles/${id}/status`, { action });
+};
 
 
 // ---- ADMIN: Payments ----

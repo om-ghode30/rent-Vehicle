@@ -3,10 +3,8 @@ import {
   getVehicleAnalytics,
   getOwnerAnalytics,
   getUserAnalytics,
-  approveUser,
-  rejectUser,
-  approveVehicle,
-  rejectVehicle,
+  toggleUserBlocked,
+  toggleVehicleBlocked,
 } from "../../api/api";
 
 export default function Analytics() {
@@ -22,13 +20,15 @@ export default function Analytics() {
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      const v = await getVehicleAnalytics();
-      const o = await getOwnerAnalytics();
-      const u = await getUserAnalytics();
+      const [vRes, oRes, uRes] = await Promise.all([
+        getVehicleAnalytics(),
+        getOwnerAnalytics(),
+        getUserAnalytics(),
+      ]);
 
-      setVehicles(v.data?.data || []);
-      setOwners(o.data?.data || []);
-      setUsers(u.data?.data || []);
+      setVehicles(vRes.data?.data || []);
+      setOwners(oRes.data?.data || []);
+      setUsers(uRes.data?.data || []);
     } catch (err) {
       console.error("Analytics error:", err);
     } finally {
@@ -65,32 +65,19 @@ export default function Analytics() {
                 <td className="p-4">{v.brand} {v.model_name}</td>
                 <td className="p-4">{v.owner_name}</td>
                 <td className="p-4">{v.total_bookings}</td>
-                <td className="p-4">{v.isBlocked ? "Blocked" : "Active"}</td>
+                <td className="p-4">{v.isBlocked === 1 ? 'Blocked' : 'Active'}</td>
                 <td className="p-4 flex gap-2">
                   <button
                     onClick={async () => {
                       try {
-                        await rejectVehicle(v.id || v.vehicle_id);
+                        await toggleVehicleBlocked(v.id || v.vehicle_id, v.isBlocked);
                         fetchAnalytics();
                       } catch (err) {
-                        alert("Failed to block vehicle");
+                        alert("Failed to update vehicle status");
                       }
                     }}
-                    className={`px-3 py-1 rounded bg-red-600 text-white`}>
-                    Block
-                  </button>
-
-                  <button
-                    onClick={async () => {
-                      try {
-                        await approveVehicle(v.id || v.vehicle_id);
-                        fetchAnalytics();
-                      } catch (err) {
-                        alert("Failed to unblock vehicle");
-                      }
-                    }}
-                    className={`px-3 py-1 rounded bg-green-600 text-white`}>
-                    Unblock
+                    className={`px-3 py-1 rounded ${v.isBlocked === 1 ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                    {v.isBlocked === 1 ? 'Unblock' : 'Block'}
                   </button>
 
                   <a href={`/admin/vehicles/${v.id || v.vehicle_id}`} className="underline text-blue-600">View</a>
@@ -114,6 +101,7 @@ export default function Analytics() {
               <th className="p-4 text-left">Owner</th>
               <th className="p-4 text-left">Vehicles</th>
               <th className="p-4 text-left">Bookings</th>
+              <th className="p-4 text-left">Status</th>
               <th className="p-4 text-left">Actions</th>
             </tr>
           </thead>
@@ -124,31 +112,19 @@ export default function Analytics() {
                 <td className="p-4">{o.name}</td>
                 <td className="p-4">{o.vehicles_count}</td>
                 <td className="p-4">{o.total_bookings}</td>
+                <td className="p-4">{o.isBlocked === 1 ? "Blocked" : "Active"}</td>
                 <td className="p-4 flex gap-2">
                   <button
                     onClick={async () => {
                       try {
-                        await rejectUser(o.id); // block (mark not approved)
+                        await toggleUserBlocked(o.id, o.isBlocked);
                         fetchAnalytics();
                       } catch (err) {
-                        alert('Failed to block owner');
+                        alert('Failed to update owner status');
                       }
                     }}
-                    className={`px-3 py-1 rounded bg-red-600 text-white`}>
-                    Block
-                  </button>
-
-                  <button
-                    onClick={async () => {
-                      try {
-                        await approveUser(o.id); // unblock / approve
-                        fetchAnalytics();
-                      } catch (err) {
-                        alert('Failed to unblock owner');
-                      }
-                    }}
-                    className={`px-3 py-1 rounded bg-green-600 text-white`}>
-                    Unblock
+                    className={`px-3 py-1 rounded ${o.isBlocked === 1 ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                    {o.isBlocked === 1 ? 'Unblock' : 'Block'}
                   </button>
 
                   <a href={`/admin/owner/${o.id}`} className="underline text-blue-600">View</a>
@@ -171,6 +147,7 @@ export default function Analytics() {
               <th className="p-4 text-left">#</th>
               <th className="p-4 text-left">User</th>
               <th className="p-4 text-left">Bookings</th>
+              <th className="p-4 text-left">Status</th>
               <th className="p-4 text-left">Actions</th>
             </tr>
           </thead>
@@ -180,31 +157,19 @@ export default function Analytics() {
                 <td className="p-4">{i + 1}</td>
                 <td className="p-4">{u.name}</td>
                 <td className="p-4">{u.bookings_count}</td>
+                <td className="p-4">{u.isBlocked === 1 ? "Blocked" : "Active"}</td>
                 <td className="p-4 flex gap-2">
                   <button
                     onClick={async () => {
                       try {
-                        await rejectUser(u.id);
+                        await toggleUserBlocked(u.id, u.isBlocked);
                         fetchAnalytics();
                       } catch (err) {
-                        alert('Failed to block user');
+                        alert('Failed to update user status');
                       }
                     }}
-                    className={`px-3 py-1 rounded bg-red-600 text-white`}>
-                    Block
-                  </button>
-
-                  <button
-                    onClick={async () => {
-                      try {
-                        await approveUser(u.id);
-                        fetchAnalytics();
-                      } catch (err) {
-                        alert('Failed to unblock user');
-                      }
-                    }}
-                    className={`px-3 py-1 rounded bg-green-600 text-white`}>
-                    Unblock
+                    className={`px-3 py-1 rounded ${u.isBlocked === 1 ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                    {u.isBlocked === 1 ? 'Unblock' : 'Block'}
                   </button>
 
                   <a href={`/admin/users/${u.id}`} className="underline text-blue-600">View</a>

@@ -17,6 +17,10 @@ import VehicleDetails from "./pages/Admin/VehicleDetails";
 import OwnerDetails from "./pages/Admin/OwnerDetails";
 import UserDetails from "./pages/Admin/UserDetails";
 import BookingDetails from "./pages/Admin/BookingDetails";
+import VehicleImageView from "./pages/Admin/VehicleImageView";
+import OwnerVehicles from "./pages/Owener/OwenerVehicles";
+import OwnerVehicleDetails from "./pages/Owener/OwnerVehicleDetails";
+import VehicleDetailsPage from "./pages/Owener/VehicleDetailsPage";
 
 function AdminProtected({ children }) {
   const { isAuthenticated, role, loading } = useData();
@@ -26,6 +30,18 @@ function AdminProtected({ children }) {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   if (String(role).toLowerCase() !== "admin") return <Navigate to="/" replace />;
+
+  return children;
+}
+
+function OwnerProtected({ children }) {
+  const { isAuthenticated, role, loading } = useData();
+
+  if (loading) return <div>Loading...</div>;
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  if (String(role).toLowerCase() !== "owner") return <Navigate to="/" replace />;
 
   return children;
 }
@@ -54,6 +70,7 @@ function AppRoutes() {
           <Route path="payments" element={<PaymentsManagement />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="vehicles/:id" element={<VehicleDetails />} />
+          <Route path="vehicles/:id/image/:idx" element={<VehicleImageView />} />
           <Route path="owner/:id" element={<OwnerDetails />} />
           <Route path="users/:id" element={<UserDetails />} />
           <Route path="booking/:id" element={<BookingDetails />} />
@@ -61,6 +78,11 @@ function AppRoutes() {
 
   {/* Default & 404 */}
   <Route path="/" element={<Home />} />
+
+        {/* Owner routes */}
+        <Route path="/owner/vehicles" element={<OwnerProtected><OwnerVehicles /></OwnerProtected>} />
+        <Route path="/owner/add-vehicle" element={<OwnerProtected><VehicleDetailsPage /></OwnerProtected>} />
+        <Route path="/owner/view-vehicle/:id" element={<OwnerProtected><OwnerVehicleDetails /></OwnerProtected>} />
         <Route path="*" element={<div className="p-20 text-center text-2xl">404 - Page Not Found</div>} />
       </Routes>
     </BrowserRouter>

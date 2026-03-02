@@ -29,6 +29,9 @@ export default function UsersManagement() {
   };
 
   const handleApprove = async (id) => {
+    const ok = window.confirm("Are you sure you want to approve this user?");
+    if (!ok) return;
+
     try {
       await approveUser(id);
       fetchUsers();
@@ -38,6 +41,9 @@ export default function UsersManagement() {
   };
 
   const handleReject = async (id) => {
+    const ok = window.confirm("Are you sure you want to reject this user?");
+    if (!ok) return;
+
     try {
       await rejectUser(id);
       fetchUsers();

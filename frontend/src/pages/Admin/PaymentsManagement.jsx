@@ -27,6 +27,9 @@ export default function PaymentsManagement() {
   };
 
   const handleApprove = async (id) => {
+    const ok = window.confirm("Mark this payment as paid?");
+    if (!ok) return;
+
     try {
       await approvePayment(id);
       fetchPayments();

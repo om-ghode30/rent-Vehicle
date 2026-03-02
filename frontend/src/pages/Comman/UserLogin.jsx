@@ -20,25 +20,28 @@ const UserLogin = () => {
 
 const handleSubmit = async (e) => {
   e.preventDefault();
-
+  console.log("Submitting login form with:", form);
   try {
     setLoading(true);
     setMessage("");
-
+    console.log("Calling login function from context...");
     const data = await login({
       email: form.email,
       password: form.password,
     });
-
+    console.log("Login response data:", data);
     const role = data.role?.toLowerCase();
-
+    console.log("User role after login:", role);
     if (role === "admin") {
       navigate("/admin/dashboard");
+      console.log("Admin logged in, navigating to dashboard");
     } 
     else if (role === "owner") {
       navigate("/owner/vehicles");
+      console.log("Owner logged in, navigating to vehicles");
     } 
     else {
+      console.log("User logged in, navigating to vehicles");
       navigate("/vehicles");
     }
 
