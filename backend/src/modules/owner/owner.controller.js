@@ -1,6 +1,7 @@
 const db = require("../../config/db");
 const fs = require("fs");
 const { encryptFile } = require("../../utils/fileEncryption");
+const { decryptFile } = require("../../utils/fileEncryption");
 exports.addVehicle = (req, res) => {
   const { brand, model_name, price_per_day, vehicle_number } = req.body;
   const ownerId = req.user.id;
@@ -150,16 +151,30 @@ exports.getOwnerBookingDetails = (req, res) => {
       AND v.owner_id = ?
   `).get(bookingId, ownerId);
 
+  // console.log(booking.user_id);
+  // const aadhar_filePath = `src/uploads/users/${booking.user_id}/aadhar.enc`;
+  // const license_filePath = `src/uploads/bookings/${bookingId}/license.enc`;
+
+  // if (!fs.existsSync(license_filePath) && !fs.existsSync(aadhar_filePath)) {
+  //   return res.status(404).json({ success: false, message: "File not found" });
+  // }
+
+  
+
   if (!booking) {
     return res.status(404).json({
       success: false,
       message: "Booking not found"
     });
   }
+// const licenseBuffer = decryptFile(license_filePath);
+// const aadharBuffer = decryptFile(aadhar_filePath);
+  // res.setHeader("Content-Type", "image/jpeg");
 
   res.json({
     success: true,
-    data: booking
+    data: booking,
+  
   });
 };
 
