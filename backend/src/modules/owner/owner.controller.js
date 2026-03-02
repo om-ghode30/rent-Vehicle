@@ -90,9 +90,105 @@ exports.getMyVehicles = (req, res) => {
     .prepare("SELECT * FROM vehicles WHERE owner_id = ?")
     .all(ownerId);
 
+  const data = vehicles.map(v => ({
+    ...v,
+    image_url: `/api/owner/vehicles/${v.id}/image1`
+  }));
+
   res.json({
     success: true,
-    data: vehicles
+    data
+  });
+};
+
+// =====================================
+// DELETE VEHICLE + FOLDER
+// =====================================
+exports.deleteVehicle = (req, res) => {
+
+  const ownerId = req.user.id;
+  const vehicleId = req.params.id;
+
+  const vehicle = db.prepare(`
+    SELECT id FROM vehicles
+    WHERE id = ? AND owner_id = ?
+  `).get(vehicleId, ownerId);
+
+  if (!vehicle) {
+    return res.status(404).json({
+      success: false,
+      message: "Vehicle not found"
+    });
+  }
+
+  const activeBooking = db.prepare(`
+    SELECT id FROM bookings
+    WHERE vehicle_id = ?
+      AND status IN ('CONFIRMED','READY_TO_DELIVER')
+  `).get(vehicleId);
+
+  if (activeBooking) {
+    return res.status(400).json({
+      success: false,
+      message: "Cannot delete vehicle with active bookings"
+    });
+  }
+
+  // 🔥 DELETE VEHICLE FOLDER
+  const vehicleFolderPath = path.join(
+    __dirname,
+    `../../uploads/owners/${ownerId}/vehicles/${vehicleId}`
+  );
+
+  if (fs.existsSync(vehicleFolderPath)) {
+    fs.rmSync(vehicleFolderPath, { recursive: true, force: true });
+  }
+
+  // Delete from DB
+  db.prepare(`
+    DELETE FROM vehicles WHERE id = ?
+  `).run(vehicleId);
+
+  res.json({
+    success: true,
+    message: "Vehicle and files deleted successfully"
+  });
+};
+
+// =====================================
+// GET VEHICLE DETAILS (OWNER)
+// =====================================
+exports.getOwnerVehicleDetails = (req, res) => {
+
+  const ownerId = req.user.id;
+  const vehicleId = req.params.id;
+
+  const vehicle = db.prepare(`
+    SELECT *
+    FROM vehicles
+    WHERE id = ? AND owner_id = ?
+  `).get(vehicleId, ownerId);
+
+  if (!vehicle) {
+    return res.status(404).json({
+      success: false,
+      message: "Vehicle not found"
+    });
+  }
+
+  // Generate 5 image URLs
+  const images = [];
+
+  for (let i = 1; i <= 5; i++) {
+    images.push(`/api/owner/vehicles/${vehicleId}/image${i}`);
+  }
+
+  res.json({
+    success: true,
+    data: {
+      vehicle,
+      images
+    }
   });
 };
 
@@ -110,7 +206,7 @@ exports.getOwnerBookings = (req, res) => {
       b.end_datetime,
       b.total_price,
       b.status,
-
+      v.id as vehicle_id,
       v.vehicle_number,
       v.brand,
       v.model_name,
@@ -126,9 +222,14 @@ exports.getOwnerBookings = (req, res) => {
     ORDER BY b.start_datetime DESC
   `).all(ownerId);
 
+  const data = bookings.map(b => ({
+    ...b,
+    vehicle_image: `/api/owner/vehicles/${b.vehicle_id}/image1`
+  }));
+
   res.json({
     success: true,
-    data: bookings
+    data
   });
 };
 
@@ -137,11 +238,13 @@ exports.getOwnerBookingDetails = (req, res) => {
 
   const ownerId = req.user.id;
   const bookingId = req.params.id;
+
   const booking = db.prepare(`
     SELECT b.*, 
            v.vehicle_number,
            v.brand,
            v.model_name,
+           u.id as user_id,
            u.name as user_name,
            u.phone_number
     FROM bookings b
@@ -151,33 +254,34 @@ exports.getOwnerBookingDetails = (req, res) => {
       AND v.owner_id = ?
   `).get(bookingId, ownerId);
 
-  // console.log(booking.user_id);
-  // const aadhar_filePath = `src/uploads/users/${booking.user_id}/aadhar.enc`;
-  // const license_filePath = `src/uploads/bookings/${bookingId}/license.enc`;
-
-  // if (!fs.existsSync(license_filePath) && !fs.existsSync(aadhar_filePath)) {
-  //   return res.status(404).json({ success: false, message: "File not found" });
-  // }
-
-  
-
   if (!booking) {
     return res.status(404).json({
       success: false,
       message: "Booking not found"
     });
   }
-// const licenseBuffer = decryptFile(license_filePath);
-// const aadharBuffer = decryptFile(aadhar_filePath);
-  // res.setHeader("Content-Type", "image/jpeg");
+
+
+  const images = [];
+
+  for (let i = 1; i <= 5; i++) {
+    images.push(`/api/owner/vehicles/${booking.vehicle_id}/image${i}`);
+  }
+
+
 
   res.json({
     success: true,
-    data: booking,
-  
+    data: {
+      ...booking,
+      vehicle_images: images,
+      documents: {
+        aadhar_url: `/api/owner/bookings/${bookingId}/aadhar`,
+        license_url: `/api/owner/bookings/${bookingId}/license`
+      }
+    }
   });
 };
-
 
 // TOGGLE AVAILABILITY
 exports.toggleAvailability = (req, res) => {
@@ -206,4 +310,124 @@ exports.toggleAvailability = (req, res) => {
     success: true,
     message: "Availability updated"
   });
+};
+
+const path = require("path");
+exports.getVehicleImage = (req, res) => {
+
+  const ownerId = req.user.id;
+  const vehicleId = req.params.id;
+  const imageName = req.params.imageName; // image1, image2...
+
+  // Validate vehicle ownership
+  const vehicle = db.prepare(`
+    SELECT id FROM vehicles
+    WHERE id = ? AND owner_id = ?
+  `).get(vehicleId, ownerId);
+
+  if (!vehicle) {
+    return res.status(404).json({
+      success: false,
+      message: "Vehicle not found"
+    });
+  }
+
+  const filePath = path.join(
+    __dirname,
+    `../../uploads/owners/${ownerId}/vehicles/${vehicleId}/${imageName}.enc`
+  );
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({
+      success: false,
+      message: "Image not found"
+    });
+  }
+
+  try {
+    const decryptedBuffer = decryptFile(filePath);
+
+    // 🔥 VERY IMPORTANT
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Content-Length", decryptedBuffer.length);
+
+    res.end(decryptedBuffer);
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error decrypting image"
+    });
+  }
+};
+
+
+exports.getBookingLicense = (req, res) => {
+
+  const ownerId = req.user.id;
+  const bookingId = req.params.id;
+
+  const booking = db.prepare(`
+    SELECT b.id, b.user_id
+    FROM bookings b
+    JOIN vehicles v ON b.vehicle_id = v.id
+    WHERE b.id = ?
+      AND v.owner_id = ?
+  `).get(bookingId, ownerId);
+
+  if (!booking) {
+    return res.status(404).json({
+      success: false,
+      message: "Not authorized"
+    });
+  }
+
+  const filePath = `src/uploads/bookings/${bookingId}/license.enc`;
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({
+      success: false,
+      message: "License not found"
+    });
+  }
+
+  const decryptedBuffer = decryptFile(filePath);
+
+  res.setHeader("Content-Type", "image/jpeg");
+  res.send(decryptedBuffer);
+};
+
+exports.getUserAadhar = (req, res) => {
+
+  const ownerId = req.user.id;
+  const bookingId = req.params.id;
+
+  const booking = db.prepare(`
+    SELECT b.user_id
+    FROM bookings b
+    JOIN vehicles v ON b.vehicle_id = v.id
+    WHERE b.id = ?
+      AND v.owner_id = ?
+  `).get(bookingId, ownerId);
+
+  if (!booking) {
+    return res.status(404).json({
+      success: false,
+      message: "Not authorized"
+    });
+  }
+
+  const filePath = `src/uploads/users/${booking.user_id}/aadhar.enc`;
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({
+      success: false,
+      message: "Aadhar not found"
+    });
+  }
+
+  const decryptedBuffer = decryptFile(filePath);
+
+  res.setHeader("Content-Type", "image/jpeg");
+  res.send(decryptedBuffer);
 };
