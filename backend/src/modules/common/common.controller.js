@@ -103,7 +103,7 @@ const login = (req, res) => {
   const { email, password } = req.body;
 
   const user = db
-    .prepare("SELECT * FROM users WHERE email = ?")
+    .prepare("SELECT * FROM users WHERE email = ? and isblocked=0")
     .get(email);
 
   if (!user) {
@@ -112,6 +112,7 @@ const login = (req, res) => {
       message: "Invalid credentials"
     });
   }
+  
 
   const isMatch = bcrypt.compareSync(password, user.password);
 
