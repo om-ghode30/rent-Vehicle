@@ -23,6 +23,11 @@ router.post(
 router.get("/vehicles", controller.getMyVehicles);
 router.get("/bookings", controller.getOwnerBookings);
 router.get("/bookings/:id", controller.getOwnerBookingDetails);
+router.get("/bookings/:id/license", controller.getBookingLicense);
+router.get("/bookings/:id/aadhar", controller.getUserAadhar);
 router.patch("/vehicles/:id/availability", controller.toggleAvailability);
+router.delete("/vehicles/:id", controller.deleteVehicle);
+router.get("/vehicles/:id", controller.getOwnerVehicleDetails);
+router.get("/vehicles/:id/:imageName", controller.getVehicleImage);
 
 module.exports = router;
