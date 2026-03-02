@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { getMyVehicles, assetUrl } from "../../api/api";
 import api from "../../api/api";
 import Navbar from "../../components/Navbar";
+import { FaPlus, FaBook, FaSearch, FaTrash, FaEye, FaGasPump, FaTag } from "react-icons/fa";
 
 export default function OwnerVehicles() {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchVehicles();
@@ -17,116 +19,153 @@ export default function OwnerVehicles() {
     setLoading(true);
     try {
       const res = await getMyVehicles();
-      const list = res.data?.data || res.data || [];
-      const normalized = list.map((v) => ({
-        id: v.id || v.vehicle_id || v._id,
-        ...v,
-      }));
-      setVehicles(normalized);
+      setVehicles(res.data?.data || []);
     } catch (err) {
-      console.error("Failed to load owner vehicles:", err);
       alert("Failed to load vehicles");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Delete Vehicle
   const handleDelete = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this vehicle?"
-    );
-    if (!confirmDelete) return;
+    if (!window.confirm("Delete this vehicle?")) return;
 
     try {
       await api.delete(`/owner/vehicles/${id}`);
-      alert("Vehicle deleted successfully");
-      fetchVehicles(); // refresh list
+      alert("Vehicle deleted");
+      fetchVehicles();
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to delete vehicle";
-      alert(msg);
+      alert("Failed to delete vehicle");
     }
   };
 
+  const filteredVehicles = vehicles.filter((v) => {
+    const query = search.toLowerCase();
+    return (
+      v.brand?.toLowerCase().includes(query) ||
+      v.model_name?.toLowerCase().includes(query) ||
+      v.vehicle_number?.toLowerCase().includes(query)
+    );
+  });
+
   return (
-    <div>
-      <div className="sticky top-0 z-50 w-full bg-white bg-opacity-80 backdrop-blur-md shadow-md">
+    <div className="bg-slate-50 min-h-screen">
+      {/* <div className="sticky top-0 z-50"> */}
         <Navbar />
-      </div>
+      {/* </div> */}
 
-      <div className="p-6 bg-gray-100 min-h-screen">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+        {/* Top Bar - Fully Responsive Stack */}
+        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 mb-10">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+              My <span className="text-blue-600">Garage</span>
+            </h1>
+            <p className="text-slate-500 font-medium">Manage your rental fleet and availability.</p>
+          </div>
 
-        {/* Top Bar */}
-        <div className="flex justify-between items-center mb-6">
-          <input
-            type="text"
-            placeholder="Search car or bike"
-            className="border p-2 rounded w-2/3"
-          />
+          <div className="flex flex-col md:flex-row gap-4 flex-1 lg:max-w-3xl">
+            {/* ✅ Enhanced Search Bar */}
+            <div className="relative flex-1">
+              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search brand, model, number..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-white border border-slate-200 pl-12 pr-4 py-4 rounded-2xl shadow-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium"
+              />
+            </div>
 
-          <button
-            onClick={() => navigate("/owner/add-vehicle")}
-            className="bg-blue-600 text-white px-5 py-2 rounded"
-          >
-            Add Vehicle
-          </button>
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => navigate("/owner/add-vehicle")}
+                className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95"
+              >
+                <FaPlus /> Add
+              </button>
+
+              <button
+                onClick={() => navigate("/owner/bookings")}
+                className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 shadow-lg transition-all active:scale-95"
+              >
+                <FaBook /> Bookings
+              </button>
+            </div>
+          </div>
         </div>
 
         {loading ? (
-          <p>Loading vehicles...</p>
-        ) : vehicles.length === 0 ? (
-          <div className="bg-white p-6 rounded shadow text-center">
-            No vehicles found.
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-blue-600 font-black text-xs uppercase tracking-[0.2em] animate-pulse">Syncing Garage...</p>
+          </div>
+        ) : filteredVehicles.length === 0 ? (
+          <div className="bg-white border-2 border-dashed border-slate-200 p-16 rounded-[2.5rem] text-center">
+            <p className="text-slate-400 font-bold text-lg">No vehicles found in your garage.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {vehicles.map((v) => (
-              <div key={v.id} className="bg-white rounded shadow p-4">
+          /* Grid - 1 col on mobile, 2 on tablet, 3 on desktop */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredVehicles.map((v) => (
+              <div key={v.id} className="group bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden flex flex-col hover:shadow-2xl hover:shadow-blue-900/5 transition-all duration-500 transform md:hover:-translate-y-2">
+                
+                {/* Image Section */}
+                <div className="relative h-64 overflow-hidden">
+                  <img
+                    src={assetUrl(v.image_url)}
+                    alt={v.brand}
+                    className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  />
+                  <div className="absolute top-4 right-4 flex flex-col gap-2">
+                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border backdrop-blur-md ${
+                      v.status === 'APPROVED' ? 'bg-emerald-500/80 text-white border-emerald-400' : 'bg-amber-500/80 text-white border-amber-400'
+                    }`}>
+                      {v.status}
+                    </span>
+                  </div>
+                </div>
 
-                <img
-                  src={assetUrl(v.images?.[0] || v.image || "")}
-                  alt={`${v.brand}`}
-                  className="h-44 w-full object-contain bg-gray-50"
-                />
+                <div className="p-6 flex-1 flex flex-col">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-2xl font-black text-slate-800 leading-tight">
+                        {v.brand}
+                      </h3>
+                      <p className="text-blue-600 font-bold text-sm uppercase tracking-tighter">{v.model_name}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-black text-slate-900">₹{v.price_per_day}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Per Day</p>
+                    </div>
+                  </div>
 
-                <h3 className="font-bold mt-2">
-                  {v.brand} {v.model_name || v.model}
-                </h3>
+                  <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-50 my-2">
+                    <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
+                      <FaTag className="text-slate-300" /> {v.vehicle_number}
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-500 text-xs font-bold justify-end">
+                      <div className={`w-2 h-2 rounded-full ${v.availability_status === 'Available' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                      {v.availability_status}
+                    </div>
+                  </div>
 
-                <p className="text-sm text-gray-600">
-                  {v.fuel_type || v.fuelType || ""}
-                </p>
+                  <div className="flex gap-3 mt-auto pt-4">
+                    <button
+                      onClick={() => navigate(`/owner/view-vehicle/${v.id}`)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-slate-50 text-slate-900 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-95"
+                    >
+                      <FaEye /> View
+                    </button>
 
-                <p className="font-semibold mt-1">
-                  ₹{v.price_per_day || v.pricePerDay} / day
-                </p>
-
-                <p className="text-xs text-gray-500">
-                  Status: {v.status || v.availability_status || "-"}
-                </p>
-
-                {/* ✅ Buttons */}
-                <div className="flex gap-2 mt-3">
-
-                  {/* View Button */}
-                  <button
-                    onClick={() => navigate(`/owner/view-vehicle/${v.id}`)}
-                    className="flex-1 bg-green-600 text-white py-2 rounded"
-                  >
-                    View
-                  </button>
-
-                  {/* Delete Button */}
-                  <button
-                    onClick={() => handleDelete(v.id)}
-                    className="flex-1 bg-red-600 text-white py-2 rounded"
-                  >
-                    Delete
-                  </button>
-
+                    <button
+                      onClick={() => handleDelete(v.id)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-rose-50 text-rose-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all active:scale-95"
+                    >
+                      <FaTrash /> Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

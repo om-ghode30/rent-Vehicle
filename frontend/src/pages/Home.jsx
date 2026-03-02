@@ -22,9 +22,9 @@ export default function Home() {
 
   return (
     <>
-      <div className="sticky top-0 z-50 w-full bg-white bg-opacity-80 backdrop-blur-md shadow-md">
+      {/* <div className="sticky top-0 z-50 w-full bg-white bg-opacity-80 backdrop-blur-md shadow-md"> */}
         <Navbar contactRef={contactRef} />
-      </div>
+      {/* </div> */}
 
       <div className="pb-10">
         <HomePages />
