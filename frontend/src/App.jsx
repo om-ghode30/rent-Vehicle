@@ -24,6 +24,10 @@ import VehicleDetailsPage from "./pages/Owener/VehicleDetailsPage";
 import OwnerBookings from "./pages/Owener/OwnerBookings";
 import OwnerBookingDetails from "./pages/Owener/OwnerBookingDetails";
 
+import AllVehicles from "./pages/User/AllVehicles";
+import UserVehicleDetails from "./pages/User/VehicleDetails";
+import MyBookings from "./pages/User/MyBookings";
+
 function AdminProtected({ children }) {
   const { isAuthenticated, role, loading } = useData();
 
@@ -88,7 +92,16 @@ function AppRoutes() {
         <Route path="/owner/bookings" element={<OwnerProtected><OwnerBookings /></OwnerProtected>} />
         <Route path="/owner/bookings/:id" element={<OwnerProtected><OwnerBookingDetails /></OwnerProtected>} />
         <Route path="*" element={<div className="p-20 text-center text-2xl">404 - Page Not Found</div>} />
+
+              {/* USER */}
+<Route path="/vehicles" element={<AllVehicles />} />
+<Route path="/vehicles/:id" element={<UserVehicleDetails />} />
+<Route path="/my-bookings" element={<MyBookings />} />
+
       </Routes>
+
+
+
     </BrowserRouter>
   );
 }

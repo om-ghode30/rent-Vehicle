@@ -29,12 +29,7 @@ exports.createBooking = async (req, res) => {
       message: "User not approved"
     });
   }
-  if (vehicle.isBlocked === 1) {
-  return res.status(403).json({
-    success: false,
-    message: "Vehicle is blocked by admin"
-  });
-}
+
 
   // Check vehicle
   const vehicle = db.prepare(`
@@ -51,6 +46,14 @@ exports.createBooking = async (req, res) => {
       message: "Vehicle not available"
     });
   }
+
+    if (vehicle.isBlocked === 1) {
+  return res.status(403).json({
+    success: false,
+    message: "Vehicle is blocked by admin"
+  });
+}
+
   const start = new Date(start_datetime);
   const end = new Date(end_datetime);
 

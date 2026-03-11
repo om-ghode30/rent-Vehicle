@@ -75,6 +75,18 @@ const Navbar = ({ contactRef }) => {
               </>
             )}
 
+            {/* USER LINKS */}
+{isAuthenticated && role === "user" && (
+  <>
+    <li>
+      <Link to="/vehicles" className={navLinkStyles}>Vehicles</Link>
+    </li>
+    <li>
+      <Link to="/my-bookings" className={navLinkStyles}>My Bookings</Link>
+    </li>
+  </>
+)}
+
             <div className="h-6 w-[1px] bg-slate-200 mx-2" />
 
             {/* AUTH BUTTONS */}
@@ -152,6 +164,28 @@ const Navbar = ({ contactRef }) => {
               </li>
             </div>
           )}
+
+          {isAuthenticated && role === "user" && (
+  <div className="pt-2 space-y-4 border-t border-slate-50">
+    <li>
+      <Link
+        to="/vehicles"
+        className="block text-lg font-semibold text-slate-700 p-3 hover:bg-blue-50 rounded-xl transition-colors"
+      >
+        Vehicles
+      </Link>
+    </li>
+
+    <li>
+      <Link
+        to="/my-bookings"
+        className="block text-lg font-semibold text-slate-700 p-3 hover:bg-blue-50 rounded-xl transition-colors"
+      >
+        My Bookings
+      </Link>
+    </li>
+  </div>
+)}
 
           <div className="pt-4 border-t border-slate-50">
             {isAuthenticated ? (
