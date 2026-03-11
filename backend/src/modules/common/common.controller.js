@@ -236,7 +236,7 @@ const getVehicleDetailsPublic = (req, res) => {
     SELECT id, vehicle_number, brand, model_name, price_per_day
     FROM vehicles
     WHERE id = ?
-      AND status = 'APPROVED' AND isblocked=0 AND isApproved=1
+      AND status = 'APPROVED' AND isblocked=0
   `).get(vehicleId);
 
   if (!vehicle) {
