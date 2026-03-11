@@ -180,4 +180,27 @@ export const getBooking = (id) =>
 export const createAdminAccount = (data) =>
   API.post(`/admin/create`, data);
 
+
+// ---- USER: Vehicles ----
+export const getApprovedVehicles = () =>
+  API.get("/common/vehicles");
+
+export const getVehicleDetailsPublic = (id) =>
+  API.get(`/common/vehicles/${id}`);
+
+
+// ---- USER: Booking ----
+export const createBooking = (formData) =>
+  API.post("/booking", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+export const getMyBookings = () =>
+  API.get("/booking/my");
+
+export const cancelBooking = (id) =>
+  API.patch(`/booking/${id}/cancel`);
+
+
+
 export default API;

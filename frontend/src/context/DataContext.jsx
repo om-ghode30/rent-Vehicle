@@ -16,6 +16,14 @@ import {
   logout as apiLogout,
 } from "../api/api";
 
+import {
+  getApprovedVehicles,
+  getVehicleDetailsPublic,
+  createBooking as apiCreateBooking,
+  getMyBookings as apiGetMyBookings,
+  cancelBooking as apiCancelBooking,
+} from "../api/api";
+
 export const DataContext = createContext();
 
 export const DataProvider = ({ children }) => {
@@ -29,6 +37,10 @@ export const DataProvider = ({ children }) => {
   const [vehicles, setVehicles] = useState([]);
   const [users, setUsers] = useState([]);
   const [payments, setPayments] = useState([]);
+
+  // ================= USER DATA =================
+const [approvedVehicles, setApprovedVehicles] = useState([]);
+const [myBookings, setMyBookings] = useState([]);
 
   // ================= LOGIN =================
   const login = async ({ email, password }) => {
@@ -93,6 +105,45 @@ export const DataProvider = ({ children }) => {
     }
   }, []);
 
+
+  const fetchApprovedVehicles = async () => {
+  try {
+    const res = await getApprovedVehicles();
+    setApprovedVehicles(res.data?.data || []);
+  } catch (error) {
+    console.error("Vehicle fetch error:", error);
+  }
+};
+
+const getVehicleDetails = async (id) => {
+  try {
+    const res = await getVehicleDetailsPublic(id);
+    return res.data?.data;
+  } catch (error) {
+    console.error("Vehicle details error:", error);
+    return null;
+  }
+};
+
+const createBooking = async (formData) => {
+  const res = await apiCreateBooking(formData);
+  return res.data;
+};
+
+const fetchMyBookings = async () => {
+  try {
+    const res = await apiGetMyBookings();
+    setMyBookings(res.data?.data || []);
+  } catch (error) {
+    console.error("Bookings fetch error:", error);
+  }
+};
+
+const cancelBooking = async (id) => {
+  const res = await apiCancelBooking(id);
+  return res.data;
+};
+
   // ================= SESSION CHECK ON REFRESH =================
   useEffect(() => {
     const verifySession = async () => {
@@ -145,6 +196,16 @@ export const DataProvider = ({ children }) => {
         setVehicles,
         setUsers,
         setPayments,
+
+
+        approvedVehicles,
+        myBookings,
+
+fetchApprovedVehicles,
+getVehicleDetails,
+createBooking,
+fetchMyBookings,
+cancelBooking,
       }}
     >
       {children}
