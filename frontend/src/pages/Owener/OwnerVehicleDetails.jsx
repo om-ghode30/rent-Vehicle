@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api, { assetUrl } from "../../api/api";
 import Navbar from "../../components/Navbar";
+import { FaChevronLeft, FaChevronRight, FaCar, FaMoneyBillWave, FaShieldAlt, FaClock, FaArrowLeft } from "react-icons/fa";
 
 export default function OwnerVehicleDetails() {
   const { id } = useParams();
@@ -9,11 +10,12 @@ export default function OwnerVehicleDetails() {
 
   const [vehicle, setVehicle] = useState(null);
   const [images, setImages] = useState([]);
+  const [currentImage, setCurrentImage] = useState(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchVehicle();
-  }, []);
+  }, [id]);
 
   const fetchVehicle = async () => {
     setLoading(true);
@@ -31,101 +33,143 @@ export default function OwnerVehicleDetails() {
 
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-slate-50">
-      <p className="text-blue-600 font-bold animate-pulse text-lg">Loading Vehicle Details...</p>
+      <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
 
   if (!vehicle) return null;
 
   return (
-    <div className="bg-slate-50 min-h-screen pb-10">
-      {/* <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md shadow-sm border-b"> */}
-        <Navbar />
-      {/* </div> */}
+    <div className="bg-slate-50 min-h-screen">
+      <Navbar />
+      <div className="max-w-7xl mx-auto p-4 md:p-8 lg:p-12">
+        
+        {/* Back Button */}
+        <button
+          onClick={() => navigate("/owner/vehicles")}
+          className="mb-8 flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold text-sm uppercase tracking-widest transition-colors"
+        >
+          <FaArrowLeft className="text-xs" /> Back to Fleet
+        </button>
 
-      <div className="p-4 md:p-8 max-w-5xl mx-auto">
-        {/* Top Navigation Row */}
-        <div className="mb-6">
-          <button
-            onClick={() => navigate("/owner/vehicles")}
-            className="inline-flex items-center gap-2 px-4 py-2 
-                      text-slate-600 font-semibold 
-                      bg-white border border-slate-300 rounded-lg
-                      shadow-sm
-                      hover:bg-blue-50 hover:text-blue-600 hover:border-blue-400
-                      active:scale-95 
-                      transition-all duration-200 ease-in-out"
-          >
-            <span className="text-lg leading-none">←</span>
-            <span>Back to Vehicles</span>
-          </button>
-        </div>
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
+          
+          {/* ================= LEFT COLUMN: IMAGES ================= */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="relative group">
+              {images.length > 0 ? (
+                <>
+                  <img
+                    src={assetUrl(images[currentImage])}
+                    alt="vehicle main"
+                    className="w-full h-[300px] md:h-[450px] lg:h-[500px] object-cover rounded-[2rem] shadow-2xl border-4 border-white"
+                  />
+                  
+                  {images.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setCurrentImage((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-blue-600 hover:text-white p-3 rounded-full shadow-lg transition-all"
+                      >
+                        <FaChevronLeft />
+                      </button>
 
-        {/* Title Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl md:text-4xl font-black text-slate-900 leading-tight">
-            Vehicle Brand : {vehicle.brand} <span className="text-blue-600 text-xl md:text-4xl"><br className="hidden md:block" /> Vehicle Model : {vehicle.model_name}</span>
-          </h2>
-          <p className="text-slate-500 text-base md:text-lg mt-2">Registration No: {vehicle.vehicle_number}</p>
-        </div>
-
-        {/* Image Gallery - Responsive Grid */}
-        <div className="mb-8">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Vehicle Gallery</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-            {images.map((img, index) => (
-              <div key={index} className="group overflow-hidden rounded-2xl shadow-md bg-white border border-slate-100">
-                <img
-                  src={assetUrl(img)}
-                  alt="vehicle"
-                  className="h-48 md:h-60 w-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-          {/* Main Specs Card */}
-          <div className="md:col-span-2 bg-white p-5 md:p-8 rounded-3xl shadow-sm border border-slate-100 space-y-6">
-            <h3 className="text-lg md:text-xl font-bold text-slate-800 border-b pb-4">Full Specifications</h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-tighter">Status</p>
-                <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold border ${
-                  vehicle.status === 'Approved' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-                }`}>
-                  {vehicle.status}
-                </span>
-              </div>
-              
-              <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-tighter">Availability</p>
-                <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold border ${
-                  vehicle.availability_status === 'Available' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-700 border-slate-200'
-                }`}>
-                  {vehicle.availability_status}
-                </span>
-              </div>
-
-              <div className="sm:col-span-2 border-t pt-4 mt-2">
-                <p className="text-xs text-slate-400 font-bold uppercase mb-3">Pricing Details</p>
-                <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-                  <div className="bg-slate-50 p-4 rounded-xl flex-1 border border-slate-100">
-                    <p className="text-xs md:text-sm text-slate-600 font-medium">Daily Rate</p>
-                    <p className="text-xl md:text-2xl font-black text-blue-600">₹{vehicle.price_per_day}</p>
-                  </div>
-                  <div className="bg-slate-50 p-4 rounded-xl flex-1 border border-slate-100">
-                    <p className="text-xs md:text-sm text-slate-600 font-medium">Late Fee (per hr)</p>
-                    <p className="text-xl md:text-2xl font-black text-red-500">₹{vehicle.late_fee_per_hour}</p>
-                  </div>
+                      <button
+                        onClick={() => setCurrentImage((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-blue-600 hover:text-white p-3 rounded-full shadow-lg transition-all"
+                      >
+                        <FaChevronRight />
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                <div className="w-full h-[300px] bg-slate-200 rounded-[2rem] flex items-center justify-center text-slate-400">
+                  No Images Available
                 </div>
-              </div>
+              )}
+            </div>
+
+            {/* THUMBNAILS */}
+            <div className="flex md:grid md:grid-cols-5 gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {images.map((img, index) => (
+                <img
+                  key={index}
+                  src={assetUrl(img)}
+                  alt={`thumbnail ${index}`}
+                  onClick={() => setCurrentImage(index)}
+                  className={`h-20 w-24 md:w-full flex-shrink-0 object-cover rounded-2xl cursor-pointer transition-all border-4 ${
+                    currentImage === index ? "border-blue-500 scale-95 shadow-lg" : "border-white hover:border-blue-200"
+                  }`}
+                />
+              ))}
             </div>
           </div>
 
-          {/* This empty space on desktop will be filled by the specs card stacking on mobile */}
+          {/* ================= RIGHT COLUMN: VEHICLE SPECS ================= */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 p-6 md:p-8 border border-slate-100">
+              
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <FaCar className="text-sm" />
+                    <span className="text-xs font-black uppercase tracking-widest">Owner Portal</span>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                    vehicle.status === 'Approved' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                  }`}>
+                    {vehicle.status}
+                  </span>
+                </div>
+                <h1 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
+                  {vehicle.brand} <span className="text-blue-600">{vehicle.model_name}</span>
+                </h1>
+                <p className="text-slate-400 font-bold text-sm mt-2 uppercase tracking-tighter">Reg: {vehicle.vehicle_number}</p>
+              </div>
+
+              {/* Pricing Section */}
+              <div className="bg-blue-50 p-6 rounded-3xl flex items-center justify-between mb-8">
+                <div>
+                  <p className="text-blue-800 font-bold text-sm">Your Daily Rate</p>
+                  <p className="text-xs text-blue-600 font-medium">Standard Pricing</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-black text-blue-700">₹{vehicle.price_per_day}</p>
+                  <p className="text-[10px] font-black uppercase text-blue-400 tracking-widest">Per Day</p>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="flex items-center gap-2 mb-1 text-slate-400">
+                    <FaClock className="text-xs" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Late Fee</span>
+                  </div>
+                  <p className="text-lg font-black text-red-500">₹{vehicle.late_fee_per_hour}<span className="text-[10px] text-slate-400 ml-1">/hr</span></p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="flex items-center gap-2 mb-1 text-slate-400">
+                    <FaShieldAlt className="text-xs" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Availability</span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-700">{vehicle.availability_status}</p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <button
+                   className="w-full bg-white text-blue-600 border-2 border-blue-600 py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-blue-50 transition-all"
+                >
+                  Manage Availability
+                </button>
+              </div>
+              
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
