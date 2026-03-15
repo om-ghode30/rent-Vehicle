@@ -14,7 +14,7 @@ export default function OwnerBookings() {
 
   const fetchBookings = async () => {
     try {
-      const res = await api.get("/owner/bookings");
+      const res = await api.get("/owner/bookings"); 
       setBookings(res.data?.data || []);
     } catch {
       alert("Failed to load bookings");
