@@ -301,7 +301,7 @@ exports.rejectUser = (req, res) => {
 // =============================
 // DOCUMENT VIEW APIs
 // =============================
-exports.viewVehicleDoc = (req, res) => {
+exports.viewVehicleDoc = async (req, res) => {
 
   const { vehicleId, fileName } = req.params;
 
@@ -313,49 +313,96 @@ exports.viewVehicleDoc = (req, res) => {
     return res.status(404).json({ success: false, message: "Vehicle not found" });
   }
 
-  const filePath = `src/uploads/owners/${vehicle.owner_id}/vehicles/${vehicleId}/${fileName}.enc`;
+  const filePath = `owners/${vehicle.owner_id}/vehicles/${vehicleId}/${fileName}`;
 
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ success: false, message: "File not found" });
-  }
+  try{
 
-  const fileBuffer = decryptFile(filePath);
+  const fileBuffer = await decryptFile(filePath);
   res.setHeader("Content-Type", "image/jpeg");
   res.send(fileBuffer);
+  } catch (error) {
+
+  if (error.message === "FILE_NOT_FOUND") {
+    return res.status(404).json({
+      success: false,
+      message: "Image not found"
+    });
+  }
+
+  return res.status(500).json({
+    success: false,
+    message: "Failed to load image"
+  });
+}
 };
 
 
-exports.viewOwnerDoc = (req, res) => {
+exports.viewOwnerDoc =async (req, res) => {
 
   const { ownerId } = req.params;
 
-  const filePath = `src/uploads/owners/${ownerId}/aadhar.enc`;
+  const filePath = `owners/${ownerId}/aadhar`;
 
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ success: false, message: "File not found" });
+  try {
+
+    const fileBuffer = await decryptFile(filePath);
+
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Content-Length", fileBuffer.length);
+
+    res.end(fileBuffer);
+
+  } catch (error) {
+
+    if (error.message === "FILE_NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        message: "Image not found"
+      });
+    }
+
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load image"
+    });
   }
-
-  const fileBuffer = decryptFile(filePath);
-  res.setHeader("Content-Type", "image/jpeg");
-  res.send(fileBuffer);
 };
 
 
-exports.viewUserDoc = (req, res) => {
+exports.viewUserDoc = async (req, res) => {
 
   const { userId } = req.params;
 
-  const filePath = `src/uploads/users/${userId}/aadhar.enc`;
+  const filePath = `users/${userId}/aadhar`;
 
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ success: false, message: "File not found" });
+  try {
+
+    const fileBuffer = await decryptFile(filePath);
+
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Content-Length", fileBuffer.length);
+
+    res.end(fileBuffer);
+
+  } catch (error) {
+
+    if (error.message === "FILE_NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        message: "Image not found"
+      });
+    }
+
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load image"
+    });
   }
-
-  const fileBuffer = decryptFile(filePath);
-res.setHeader("Content-Type", "image/jpeg");
-  res.send(fileBuffer);
 };
-
 
 // =====================================
 // 1. ALL VEHICLES ORDER BY BOOKINGS

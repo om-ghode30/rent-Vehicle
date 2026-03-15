@@ -2,7 +2,7 @@ const db = require("../../config/db");
 const fs = require("fs");
 const { encryptFile } = require("../../utils/fileEncryption");
 const { decryptFile } = require("../../utils/fileEncryption");
-exports.addVehicle = (req, res) => {
+exports.addVehicle = async(req, res) => {
   const { brand, model_name, price_per_day, vehicle_number } = req.body;
   const ownerId = req.user.id;
 
@@ -47,30 +47,38 @@ if (!owner || owner.isApproved === 0) {
     const vehicleId = result.lastInsertRowid;
 
     // Create vehicle folder
-    const vehicleFolder = `src/uploads/owners/${ownerId}/vehicles/${vehicleId}`;
-    fs.mkdirSync(vehicleFolder, { recursive: true });
+    const vehicleFolder = `owners/${ownerId}/vehicles/${vehicleId}`;
+    
 
-    // Save and encrypt fixed names
-    encryptFile(req.files.rc[0].path, `${vehicleFolder}/rc.enc`);
-    encryptFile(req.files.insurance[0].path, `${vehicleFolder}/insurance.enc`);
-    encryptFile(req.files.puc[0].path, `${vehicleFolder}/puc.enc`);
-    encryptFile(req.files.noc[0].path, `${vehicleFolder}/noc.enc`);
+    const uploads = [];
 
-    // Save 5 images
-    req.files.images.forEach((file, index) => {
-      encryptFile(file.path, `${vehicleFolder}/image${index + 1}.enc`);
-    });
+uploads.push(encryptFile(req.files.rc[0].path, `${vehicleFolder}/rc`));
+uploads.push(encryptFile(req.files.insurance[0].path, `${vehicleFolder}/insurance`));
+uploads.push(encryptFile(req.files.puc[0].path, `${vehicleFolder}/puc`));
+uploads.push(encryptFile(req.files.noc[0].path, `${vehicleFolder}/noc`));
 
-    res.json({
-      success: true,
-      message: "Vehicle added successfully (Pending approval)"
-    });
+req.files.images.forEach((file, index) => {
+  uploads.push(encryptFile(file.path, `${vehicleFolder}/image${index + 1}`));
+});
+
+await Promise.all(uploads);
+
+res.json({
+  success: true,
+  message: "Vehicle added successfully (Pending approval)"
+});
 
   } catch (error) {
     if (error.message.includes("UNIQUE")) {
       return res.status(400).json({
         success: false,
         message: "Vehicle number already registered"
+      });
+    }
+    if (error.message === "FILE_NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        message: "File not found"
       });
     }
 
@@ -104,7 +112,7 @@ exports.getMyVehicles = (req, res) => {
 // =====================================
 // DELETE VEHICLE + FOLDER
 // =====================================
-exports.deleteVehicle = (req, res) => {
+exports.deleteVehicle = async (req, res) => {
 
   const ownerId = req.user.id;
   const vehicleId = req.params.id;
@@ -134,25 +142,38 @@ exports.deleteVehicle = (req, res) => {
     });
   }
 
-  // 🔥 DELETE VEHICLE FOLDER
-  const vehicleFolderPath = path.join(
-    __dirname,
-    `../../uploads/owners/${ownerId}/vehicles/${vehicleId}`
-  );
+  try {
 
-  if (fs.existsSync(vehicleFolderPath)) {
-    fs.rmSync(vehicleFolderPath, { recursive: true, force: true });
+    // 🔥 Delete all vehicle images from Cloudinary
+    await cloudinary.api.delete_resources_by_prefix(
+      `rental-vehicle/owners/${ownerId}/vehicles/${vehicleId}`
+    );
+
+    // Optional: remove folder
+    await cloudinary.api.delete_folder(
+      `rental-vehicle/owners/${ownerId}/vehicles/${vehicleId}`
+    );
+
+    // Delete from DB
+    db.prepare(`
+      DELETE FROM vehicles WHERE id = ?
+    `).run(vehicleId);
+
+    res.json({
+      success: true,
+      message: "Vehicle deleted successfully"
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete vehicle files"
+    });
+
   }
-
-  // Delete from DB
-  db.prepare(`
-    DELETE FROM vehicles WHERE id = ?
-  `).run(vehicleId);
-
-  res.json({
-    success: true,
-    message: "Vehicle and files deleted successfully"
-  });
 };
 
 // =====================================
@@ -313,11 +334,11 @@ exports.toggleAvailability = (req, res) => {
 };
 
 const path = require("path");
-exports.getVehicleImage = (req, res) => {
+exports.getVehicleImage = async (req, res) => {
 
   const ownerId = req.user.id;
   const vehicleId = req.params.id;
-  const imageName = req.params.imageName; // image1, image2...
+  const imageName = req.params.imageName; 
 
   // Validate vehicle ownership
   const vehicle = db.prepare(`
@@ -332,20 +353,10 @@ exports.getVehicleImage = (req, res) => {
     });
   }
 
-  const filePath = path.join(
-    __dirname,
-    `../../uploads/owners/${ownerId}/vehicles/${vehicleId}/${imageName}.enc`
-  );
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({
-      success: false,
-      message: "Image not found"
-    });
-  }
+  const filePath = `owners/${ownerId}/vehicles/${vehicleId}/${imageName}`
 
   try {
-    const decryptedBuffer = decryptFile(filePath);
+    const decryptedBuffer = await decryptFile(filePath);
 
     // 🔥 VERY IMPORTANT
     res.setHeader("Content-Type", "image/jpeg");
@@ -354,15 +365,23 @@ exports.getVehicleImage = (req, res) => {
     res.end(decryptedBuffer);
 
   } catch (error) {
-    res.status(500).json({
+
+  if (error.message === "FILE_NOT_FOUND") {
+    return res.status(404).json({
       success: false,
-      message: "Error decrypting image"
+      message: "Image not found"
     });
   }
+
+  return res.status(500).json({
+    success: false,
+    message: "Failed to load image"
+  });
+}
 };
 
 
-exports.getBookingLicense = (req, res) => {
+exports.getBookingLicense = async (req, res) => {
 
   const ownerId = req.user.id;
   const bookingId = req.params.id;
@@ -382,22 +401,29 @@ exports.getBookingLicense = (req, res) => {
     });
   }
 
-  const filePath = `src/uploads/bookings/${bookingId}/license.enc`;
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({
-      success: false,
-      message: "License not found"
-    });
-  }
-
-  const decryptedBuffer = decryptFile(filePath);
+  const filePath = `bookings/${bookingId}/license`;
+  try{
+  const decryptedBuffer = await decryptFile(filePath);
 
   res.setHeader("Content-Type", "image/jpeg");
   res.send(decryptedBuffer);
+  } catch (error) {
+
+  if (error.message === "FILE_NOT_FOUND") {
+    return res.status(404).json({
+      success: false,
+      message: "Image not found"
+    });
+  }
+
+  return res.status(500).json({
+    success: false,
+    message: "Failed to load image"
+  });
+}
 };
 
-exports.getUserAadhar = (req, res) => {
+exports.getUserAadhar = async(req, res) => {
 
   const ownerId = req.user.id;
   const bookingId = req.params.id;
@@ -417,17 +443,26 @@ exports.getUserAadhar = (req, res) => {
     });
   }
 
-  const filePath = `src/uploads/users/${booking.user_id}/aadhar.enc`;
+  const filePath = `users/${booking.user_id}/aadhar`;
 
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({
-      success: false,
-      message: "Aadhar not found"
-    });
-  }
+  try{
 
-  const decryptedBuffer = decryptFile(filePath);
+  const decryptedBuffer =await decryptFile(filePath);
 
   res.setHeader("Content-Type", "image/jpeg");
   res.send(decryptedBuffer);
+  } catch (error) {
+
+  if (error.message === "FILE_NOT_FOUND") {
+    return res.status(404).json({
+      success: false,
+      message: "Image not found"
+    });
+  }
+
+  return res.status(500).json({
+    success: false,
+    message: "Failed to load image"
+  });
+}
 };

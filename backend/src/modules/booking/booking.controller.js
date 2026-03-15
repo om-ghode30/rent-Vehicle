@@ -125,13 +125,23 @@ if (!lockResult.success) {
 
   const bookingId = result.lastInsertRowid;
 
-  
   // Save license file
-  const bookingFolder = `src/uploads/bookings/${bookingId}`;
-  fs.mkdirSync(bookingFolder, { recursive: true });
+  const bookingFolder = `bookings/${bookingId}`;
+  try{
+  await encryptFile(req.file.path, `${bookingFolder}/license`);
+  }catch(error){
+    if (error.message === "FILE_NOT_FOUND") {
+    return res.status(404).json({
+      success: false,
+      message: "Image not found"
+    });
+  }
 
-  encryptFile(req.file.path, `${bookingFolder}/license.enc`);
-
+  return res.status(500).json({
+    success: false,
+    message: "Failed to load image"
+  });
+  }
  let paymentResponse;
 
 try {

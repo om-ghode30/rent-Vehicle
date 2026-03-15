@@ -9,7 +9,7 @@ const { decryptFile } = require("../../utils/fileEncryption");
 
 
 // REGISTER OWNER
-const register = (req, res) => {
+const register = async (req, res) => {
   const { name, email, password,phone_number,role } = req.body;
 
   if (!name || !email || !password||!phone_number || !role || !req.file) {
@@ -66,17 +66,13 @@ try{
   `).run(name, email,phone_number, hashedPassword,role);
     
   const userId = result.lastInsertRowid;
-
   // Create owner folder
   const baseFolder = role === "OWNER"
-      ? `src/uploads/owners/${userId}`
-      : `src/uploads/users/${userId}`;
-  fs.mkdirSync(baseFolder, { recursive: true });
-
-  const encryptedPath = `${baseFolder}/aadhar.enc`;
-
-  encryptFile(req.file.path, encryptedPath);
-
+      ? `owners/${userId}`
+      : `users/${userId}`;
+ 
+  const encryptedPath = `${baseFolder}/aadhar`;
+  await encryptFile(req.file.path, encryptedPath);
   res.json({
     success: true,
     message: `${role} registered successfully. Waiting for admin approval.`
@@ -89,6 +85,16 @@ try{
       message: "Email already exists"
     });
   }
+  
+  if (error.message === "FILE_NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        message: "Image not found"
+      });
+    }
+
+    console.error(error);
+
 
   return res.status(500).json({
     success: false,
@@ -270,7 +276,7 @@ const getVehicleDetailsPublic = (req, res) => {
   });
 };
 
-const getVehicleFirstImage = (req, res) => {
+const getVehicleFirstImage = async (req, res) => {
 
   const vehicleId = req.params.vehicleId;
 
@@ -281,19 +287,28 @@ const getVehicleFirstImage = (req, res) => {
   if (!vehicle) {
     return res.status(404).json({ success: false, message: "Vehicle not found" });
   }
-
-  const filePath = `src/uploads/owners/${vehicle.owner_id}/vehicles/${vehicleId}/image1.enc`;
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ success: false, message: "Image not found" });
-  }
-
-  const fileBuffer = decryptFile(filePath);
+  try{
+  const filePath = `owners/${vehicle.owner_id}/vehicles/${vehicleId}/image1`;
+  res.setHeader("Content-Type", "image/jpeg");
+  const fileBuffer = await decryptFile(filePath);
 
   res.send(fileBuffer);
+  }catch(error){
+    if (error.message === "FILE_NOT_FOUND") {
+    return res.status(404).json({
+      success: false,
+      message: "Image not found"
+    });
+  }
+
+  return res.status(500).json({
+    success: false,
+    message: "Failed to load image"
+  });
+  }
 };
 
-const getVehicleImage = (req, res) => {
+const getVehicleImage = async (req, res) => {
 
   const { vehicleId, fileName } = req.params;
 
@@ -305,15 +320,27 @@ const getVehicleImage = (req, res) => {
     return res.status(404).json({ success: false, message: "Vehicle not found" });
   }
 
-  const filePath = `src/uploads/owners/${vehicle.owner_id}/vehicles/${vehicleId}/${fileName}.enc`;
+  const filePath = `owners/${vehicle.owner_id}/vehicles/${vehicleId}/${fileName}`;
 
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ success: false, message: "Image not found" });
-  }
+  try{
   console.log(filePath);
-  const fileBuffer = decryptFile(filePath);
-res.setHeader("Content-Type", "image/jpeg");
+  const fileBuffer =await decryptFile(filePath);
+  res.setHeader("Content-Type", "image/jpeg");
   res.send(fileBuffer);
+  } catch (error) {
+
+  if (error.message === "FILE_NOT_FOUND") {
+    return res.status(404).json({
+      success: false,
+      message: "Image not found"
+    });
+  }
+
+  return res.status(500).json({
+    success: false,
+    message: "Failed to load image"
+  });
+}
 };
 // =====================================
 // DEV HARDCODED QUERY RUNNER (TEMP)
@@ -324,7 +351,7 @@ const runHardcodedQuery = (req, res) => {
   try {
 
 // const Query = "select * from bookings ;";
-const Query = "ALTER TABLE vehicles ADD COLUMN isBlocked INTEGER DEFAULT 0;";
+const Query = "delete from users where email='ghode@gmail.com';";
 
     let result;
 
