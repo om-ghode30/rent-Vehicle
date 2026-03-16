@@ -14,6 +14,7 @@ router.post(
 );
 
 router.get("/my", controller.getMyBookings);
+router.get("/:id",controller.getPerticularBooking);
 router.patch("/:id/cancel", controller.cancelBooking);
 
 module.exports = router;

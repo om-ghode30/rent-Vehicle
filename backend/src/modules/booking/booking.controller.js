@@ -9,9 +9,9 @@ const { acquireVehicleLock, releaseVehicleLock } =require("../../services/lock.s
 exports.createBooking = async (req, res) => {
 
   const userId = req.user.id;
-  const { vehicle_id, start_datetime, end_datetime } = req.body;
+  const { vehicle_id, start_datetime, end_datetime, driver_name } = req.body;
 
-  if (!vehicle_id || !start_datetime || !end_datetime || !req.file) {
+  if (!vehicle_id || !start_datetime || !end_datetime || !req.file || !driver_name) {
     return res.status(400).json({
       success: false,
       message: "All fields including license required"
@@ -111,16 +111,19 @@ if (!lockResult.success) {
       start_datetime,
       end_datetime,
       total_days,
-      total_price,status
+      total_price,
+      status,
+      d_name
     )
-    VALUES (?, ?, ?, ?, ?, ?,'PENDING')
+    VALUES (?, ?, ?, ?, ?, ?,'PENDING',?)
   `).run(
     userId,
     vehicle_id,
     start_datetime,
     end_datetime,
     totalDays,
-    totalPrice
+    totalPrice,
+    driver_name
   );
 
   const bookingId = result.lastInsertRowid;
@@ -272,5 +275,56 @@ if (refundAmount > 0) {
     message: "Booking cancelled",
     refund_percent: refundPercent,
     refund_amount: refundAmount
+  });
+};
+
+exports.getPerticularBooking = (req, res) => {
+  const bookingId = req.params.id;
+  const userId = req.user.id;
+
+  const booking = db.prepare(`
+  SELECT 
+    b.id as booking_id,
+    b.start_datetime,
+    b.end_datetime,
+    b.total_price,
+    b.status,
+    b.d_name,
+
+    v.id as vehicle_id,
+    v.vehicle_number,
+    v.brand,
+    v.model_name,
+
+    o.name as owner_name,
+    o.address,
+    o.phone_number
+
+  FROM bookings b
+  JOIN vehicles v ON b.vehicle_id = v.id
+  JOIN users o ON v.owner_id = o.id
+
+  WHERE b.id = ? AND b.user_id = ?
+  `).get(bookingId, userId);
+
+  if (!booking) {
+    return res.status(404).json({
+      success: false,
+      message: "Booking not found"
+    });
+  }
+
+  const images = [];
+
+  for (let i = 1; i <= 5; i++) {
+    images.push(`/api/common/vehicles/${booking.vehicle_id}/docs/image${i}`);
+  }
+
+  res.json({
+    success: true,
+    data: {
+      ...booking,
+      vehicle_images: images
+    }
   });
 };

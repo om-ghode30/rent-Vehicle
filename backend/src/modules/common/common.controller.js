@@ -351,7 +351,7 @@ const runHardcodedQuery = (req, res) => {
   try {
 
 // const Query = "select * from bookings ;";
-const Query = "delete from users where email='ghode@gmail.com';";
+const Query = "update bookings set d_name ='om';";
 
     let result;
 

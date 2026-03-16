@@ -44,7 +44,7 @@ function initDatabase() {
 
   start_datetime DATETIME NOT NULL,
   end_datetime DATETIME NOT NULL,
-
+  d_name Text NOT NULL,
   total_days INTEGER NOT NULL,
   total_price REAL NOT NULL,
 
@@ -57,7 +57,7 @@ function initDatabase() {
   )) DEFAULT 'PENDING',
 
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-
+  
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
 );
