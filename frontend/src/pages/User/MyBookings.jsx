@@ -10,18 +10,25 @@ export default function MyBookings() {
     fetchMyBookings();
   }, []);
 
-  const handleCancel = async (id) => {
-    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+const handleCancel = async (id) => {
+  if (!window.confirm("Are you sure you want to cancel this booking?")) return;
 
+  try {
     const res = await cancelBooking(id);
 
-    if (res.success) {
+    if (res.data.success) {
       alert("Booking cancelled successfully");
       fetchMyBookings();
     } else {
-      alert(res.message);
+      alert(res.data.message);
     }
-  };
+
+  } catch (err) {
+    console.log("Cancel error:", err.response?.data);
+
+    alert(err.response?.data?.message || "Cancel failed");
+  }
+};
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString('en-IN', {
