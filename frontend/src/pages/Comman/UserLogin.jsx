@@ -48,12 +48,11 @@ const UserLogin = () => {
       }
 
     } catch (error) {
-      setMessage(
-        error?.message ||
-        error?.response?.data?.message ||
-        "Login failed"
-      );
-    } finally {
+  const msg =
+    error.response?.data?.message || "Login failed";
+
+  alert(msg); // 🔥 this shows popup
+} finally {
       setLoading(false);
     }
   };

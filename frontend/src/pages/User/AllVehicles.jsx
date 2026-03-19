@@ -8,6 +8,7 @@ import { FaCar, FaUserAlt, FaTag, FaArrowRight, FaSearch, FaSlidersH } from "rea
 export default function AllVehicles() {
   const navigate = useNavigate();
   const { approvedVehicles, fetchApprovedVehicles } = useData();
+  const { isAuthenticated } = useData();
 
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("");
@@ -171,7 +172,14 @@ export default function AllVehicles() {
                     </div>
 
                     <button
-                      onClick={() => navigate(`/vehicles/${vehicle.vehicle_id}`)}
+                      onClick={() => {
+  if (!isAuthenticated) {
+    alert("Please login first");
+    navigate("/login");
+    return;
+  }
+  navigate(`/vehicles/${vehicle.vehicle_id}`);
+}}
                       className="w-full flex items-center justify-center gap-3 bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
                     >
                       Book Now

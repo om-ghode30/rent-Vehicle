@@ -19,6 +19,21 @@ export const assetUrl = (path) => {
 export const login = (payload) =>
   API.post("/common/login", payload);
 
+// ---- OTP APIs ----
+export const sendOtp = (email) =>
+  API.post("/common/send-otp", { email });
+
+export const verifyOtp = (payload) =>
+  API.post("/common/verify-otp", payload);
+
+// ---- CHAT ----
+export const sendMessage = (data) =>
+  API.post("/chat/send", data);
+
+export const getMessages = (bookingId) =>
+  API.get(`/chat/${bookingId}`);
+
+// Register api
 export const register = (payload) => {
   if (payload instanceof FormData) {
     return API.post("/common/register", payload, {

@@ -1,10 +1,12 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useData } from "../../context/DataContext";
 import Navbar from "../../components/Navbar";
 import { FaCalendarAlt, FaCar, FaClock, FaReceipt } from "react-icons/fa";
 
 export default function MyBookings() {
   const { myBookings, fetchMyBookings, cancelBooking } = useData();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchMyBookings();
@@ -119,6 +121,12 @@ const handleCancel = async (id) => {
                         Cancel Order
                       </button>
                     )}
+                    <button
+    onClick={() => navigate(`/chat/${booking.id}`)}
+    className="w-full bg-blue-600 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-sm"
+  >
+    Chat
+  </button>
                 </div>
               </div>
             ))}

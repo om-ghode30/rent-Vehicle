@@ -14,6 +14,10 @@ import {
   register as apiRegister,
   checkSession,
   logout as apiLogout,
+  sendOtp as apiSendOtp, 
+  verifyOtp as apiVerifyOtp,
+   sendMessage as apiSendMessage, 
+   getMessages as apiGetMessages 
 } from "../api/api";
 
 import {
@@ -144,6 +148,34 @@ const cancelBooking = async (id) => {
   return res.data;
 };
 
+// ================= OTP =================
+const sendUserOtp = async (email) => {
+  const res = await apiSendOtp(email);
+  if (!res.data.success) {
+    throw new Error(res.data.message || "Failed to send OTP");
+  }
+  return res.data;
+};
+
+const verifyUserOtp = async ({ email, otp }) => {
+  const res = await apiVerifyOtp({ email, otp });
+  if (!res.data.success) {
+    throw new Error(res.data.message || "OTP verification failed");
+  }
+  return res.data;
+};
+
+// ================= CHAT =================
+const sendChatMessage = async (payload) => {
+  const res = await apiSendMessage(payload);
+  return res.data;
+};
+
+const fetchChatMessages = async (bookingId) => {
+  const res = await apiGetMessages(bookingId);
+  return res.data?.data || [];
+};
+
   // ================= SESSION CHECK ON REFRESH =================
   useEffect(() => {
     const verifySession = async () => {
@@ -187,6 +219,8 @@ const cancelBooking = async (id) => {
         logout,
         register,
         registerOwnerAccount,
+        sendUserOtp,
+        verifyUserOtp,
         vehicles,
         users,
         payments,
@@ -206,6 +240,9 @@ getVehicleDetails,
 createBooking,
 fetchMyBookings,
 cancelBooking,
+
+sendChatMessage,
+fetchChatMessages,
       }}
     >
       {children}

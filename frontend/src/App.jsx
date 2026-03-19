@@ -27,6 +27,38 @@ import OwnerBookingDetails from "./pages/Owener/OwnerBookingDetails";
 import AllVehicles from "./pages/User/AllVehicles";
 import UserVehicleDetails from "./pages/User/VehicleDetails";
 import MyBookings from "./pages/User/MyBookings";
+import ChatRoom from "./pages/Chat/ChatRoom";
+
+function UserProtected({ children }) {
+  const { isAuthenticated, loading } = useData();
+
+  if (loading) return <div>Loading...</div>;
+
+  if (!isAuthenticated) {
+    alert("Please login first"); // 🔥 your requirement
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function PublicRoute({ children }) {
+  const { isAuthenticated, role, loading } = useData();
+
+  if (loading) return <div>Loading...</div>;
+
+  if (isAuthenticated) {
+    // 🔥 Role-based redirect
+    if (role === "admin") {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+
+    // USER & OWNER → Home
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
 
 function AdminProtected({ children }) {
   const { isAuthenticated, role, loading } = useData();
@@ -57,9 +89,32 @@ function AppRoutes() {
     <BrowserRouter>
       <Routes>
         {/* Public */}
-        <Route path="/login" element={<UserLogin />} />
-        <Route path="/register" element={<UserReg />} />
-        <Route path="/otp" element={<Otp />} />
+        <Route
+  path="/login"
+  element={
+    <PublicRoute>
+      <UserLogin />
+    </PublicRoute>
+  }
+/>
+
+<Route
+  path="/register"
+  element={
+    <PublicRoute>
+      <UserReg />
+    </PublicRoute>
+  }
+/>
+
+<Route
+  path="/otp"
+  element={
+    <PublicRoute>
+      <Otp />
+    </PublicRoute>
+  }
+/>
 
         {/* Admin protected routes */}
         <Route
@@ -95,8 +150,33 @@ function AppRoutes() {
 
               {/* USER */}
 <Route path="/vehicles" element={<AllVehicles />} />
-<Route path="/vehicles/:id" element={<UserVehicleDetails />} />
-<Route path="/my-bookings" element={<MyBookings />} />
+
+<Route
+  path="/vehicles/:id"
+  element={
+    <UserProtected>
+      <UserVehicleDetails />
+    </UserProtected>
+  }
+/>
+
+<Route
+  path="/my-bookings"
+  element={
+    <UserProtected>
+      <MyBookings />
+    </UserProtected>
+  }
+/>
+
+<Route
+  path="/chat/:bookingId"
+  element={
+    <UserProtected>
+      <ChatRoom />
+    </UserProtected>
+  }
+/>
 
       </Routes>
 

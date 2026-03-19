@@ -108,6 +108,14 @@ export default function OwnerBookings() {
                   >
                     View Details
                   </button>
+
+                   <button
+        onClick={() => navigate(`/chat/${b.booking_id}`)}
+        className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2.5 rounded-xl"
+      >
+        Chat
+      </button>
+      
                 </div>
               </div>
             ))}
