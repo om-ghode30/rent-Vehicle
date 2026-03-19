@@ -66,10 +66,10 @@ exports.createBooking = async (req, res) => {
 
   const diffHours = (end - start) / (1000 * 60 * 60);
 
-  if (diffHours < 24) {
+  if (diffHours < 12) {
     return res.status(400).json({
       success: false,
-      message: "Minimum booking is 24 hours"
+      message: "Minimum booking is 12 hours"
     });
   }
 

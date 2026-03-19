@@ -87,6 +87,25 @@ CREATE TABLE IF NOT EXISTS pending_payments (
   FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  booking_id INTEGER,
+
+  sender_role TEXT CHECK(sender_role IN ('USER','OWNER','ADMIN')),
+  message TEXT,
+
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+  FOREIGN KEY (booking_id) REFERENCES bookings(id)
+);
+
+CREATE TABLE IF NOT EXISTS otp_verifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT,
+  otp TEXT,
+  expires_at DATETIME
+);
+
   `);
 
   console.log("Tables created successfully");

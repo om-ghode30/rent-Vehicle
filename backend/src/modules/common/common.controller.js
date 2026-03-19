@@ -6,6 +6,8 @@ const fs = require("fs");
 const path = require("path");
 const { encryptFile } = require("../../utils/fileEncryption");
 const { decryptFile } = require("../../utils/fileEncryption");
+const generateOTP = require("../../utils/otp");
+const { sendOTPEmail } = require("../../services/email.service");
 
 
 // REGISTER OWNER
@@ -58,6 +60,36 @@ if (password.length < 6) {
 
   
 try{
+
+  const otpRecord = db.prepare(`
+  SELECT * FROM otp_verifications
+  WHERE email = ?
+  ORDER BY id DESC
+`).get(email);
+
+if (!otpRecord) {
+  return res.status(400).json({
+    success: false,
+    message: "Please verify OTP first"
+  });
+}
+
+// check expiry
+if (new Date(otpRecord.expires_at) < new Date()) {
+  return res.status(400).json({
+    success: false,
+    message: "OTP expired"
+  });
+}
+
+// check verified flag
+if (otpRecord.is_verified !== 1) {
+  return res.status(400).json({
+    success: false,
+    message: "OTP not verified"
+  });
+}
+
   const hashedPassword = bcrypt.hashSync(password, 10);
   console.log(name, email,phone_number, hashedPassword,role);
   const result = db.prepare(`
@@ -351,7 +383,7 @@ const runHardcodedQuery = (req, res) => {
   try {
 
 // const Query = "select * from bookings ;";
-const Query = "update bookings set d_name ='om';";
+const Query = "ALTER TABLE otp_verifications ADD COLUMN is_verified INTEGER DEFAULT 0;";
 
     let result;
 
@@ -369,6 +401,82 @@ const Query = "update bookings set d_name ='om';";
   }
 };
 
+
+const sendOTP = async (req, res) => {
+  try {
+
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email required"
+      });
+    }
+
+    const otp = generateOTP();
+
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 min
+
+    db.prepare(`
+      INSERT INTO otp_verifications (email, otp, expires_at)
+      VALUES (?, ?, ?)
+    `).run(email, otp, expiresAt.toISOString());
+
+    await sendOTPEmail(email, otp);
+
+    res.json({
+      success: true,
+      message: "OTP sent successfully"
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to send OTP"
+    });
+  }
+};
+
+const verifyOTP = (req, res) => {
+
+  const { email, otp } = req.body;
+
+  const record = db.prepare(`
+    SELECT * FROM otp_verifications
+    WHERE email = ? AND otp = ?
+    ORDER BY id DESC
+  `).get(email, otp);
+
+  if (!record) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid OTP"
+    });
+  }
+
+  if (new Date(record.expires_at) < new Date()) {
+    return res.status(400).json({
+      success: false,
+      message: "OTP expired"
+    });
+  }
+
+  // ✅ mark verified
+  db.prepare(`
+    UPDATE otp_verifications
+    SET is_verified = 1
+    WHERE id = ?
+  `).run(record.id);
+
+  res.json({
+    success: true,
+    message: "OTP verified"
+  });
+};
+
 module.exports = {
   register,
   login,
@@ -378,5 +486,7 @@ module.exports = {
   getVehicleDetailsPublic,
   getVehicleImage,
   getVehicleFirstImage,
-  runHardcodedQuery
+  runHardcodedQuery,
+  sendOTP,  
+  verifyOTP
 };
