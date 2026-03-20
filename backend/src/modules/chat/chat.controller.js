@@ -1,3 +1,4 @@
+const db = require("../../config/db");
 exports.sendMessage = (req, res) => {
 
   const userId = req.user.id;

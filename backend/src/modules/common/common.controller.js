@@ -161,6 +161,14 @@ const login = (req, res) => {
     });
   }
 
+  // 🔥 ADD THIS BLOCK HERE
+if (user.isApproved !== 1) {
+  return res.status(403).json({
+    success: false,
+    message: "Your account is pending admin approval"
+  });
+}
+
   const token = jwt.sign(
     { id: user.id, role: user.role },
     process.env.JWT_SECRET,
@@ -343,7 +351,6 @@ const getVehicleFirstImage = async (req, res) => {
 const getVehicleImage = async (req, res) => {
 
   const { vehicleId, fileName } = req.params;
-
   const vehicle = db.prepare(`
     SELECT owner_id FROM vehicles WHERE id = ?
   `).get(vehicleId);
