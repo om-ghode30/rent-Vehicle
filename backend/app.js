@@ -12,13 +12,8 @@ const server = http.createServer(app);
 
 // CORS
 app.use(cors({
-  // origin: [
-  //   "http://localhost:5173",  // web
-  //   "http://192.168.1.10:19000", // expo (your IP)
-  //   "http://192.168.1.10:8081",
-  //   "*",
-  // ],
-  origin: true,
+ 
+  origin: "*",
   credentials: true
 }));
 
@@ -26,8 +21,8 @@ app.use(cors({
 const io = new Server(server, {
   cors: {
     // origin: "http://localhost:5173",
-    // origin: "*",
-    origin: true,
+    origin: "*",
+    // origin: true,
     credentials: true
   }
 });
@@ -77,6 +72,6 @@ const PORT = process.env.PORT || 5000;
 //   console.log(`Server running on port ${PORT}`);
 // });
 
-server.listen(PORT, "0.0.0.0", () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

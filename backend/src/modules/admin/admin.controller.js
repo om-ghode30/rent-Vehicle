@@ -5,9 +5,9 @@ const { decryptFile } = require("../../utils/fileEncryption");
 // =============================
 // GET PENDING VEHICLES
 // =============================
-exports.getPendingVehicles = (req, res) => {
+exports.getPendingVehicles = async (req, res) => {
 
-  const vehicles = db.prepare(`
+  const [vehicles] = await db.query(`
     SELECT 
       v.id as vehicle_id,
       v.vehicle_number,
@@ -17,7 +17,7 @@ exports.getPendingVehicles = (req, res) => {
     FROM vehicles v
     JOIN users u ON v.owner_id = u.id
     WHERE v.status = 'PENDING'
-  `).all();
+  `);
 
   const data = vehicles.map(v => ({
     ...v,
@@ -31,22 +31,25 @@ exports.getPendingVehicles = (req, res) => {
 // =============================
 // GET FULL VEHICLE DETAILS
 // =============================
-exports.getVehicleDetails = (req, res) => {
+exports.getVehicleDetails = async (req, res) => {
 
   const vehicleId = req.params.vehicleId;
 
-  const vehicle = db.prepare(`
+  const [vehicleRows] = await db.query(`
     SELECT * FROM vehicles WHERE id = ?
-  `).get(vehicleId);
+  `,[vehicleId]);
+  const vehicle = vehicleRows[0];
 
   if (!vehicle) {
     return res.status(404).json({ success: false, message: "Vehicle not found" });
   }
 
-  const owner = db.prepare(`
+  const [ownerRows] = await db.query(`
     SELECT id, name, email, phone_number, isApproved 
     FROM users WHERE id = ?
-  `).get(vehicle.owner_id);
+  `,[vehicle.owner_id]);
+
+   const owner = ownerRows[0];
 
   res.json({
     success: true,
@@ -71,25 +74,28 @@ exports.getVehicleDetails = (req, res) => {
   });
 };
 
-
 // =============================
 // APPROVE VEHICLE
 // =============================
-exports.approveVehicle = (req, res) => {
-
+exports.approveVehicle = async (req, res) => { // Added async
   const vehicleId = req.params.id;
 
-  const vehicle = db.prepare(`
+  // MySQL returns [rows, fields], so we destructure the first element
+  const [vehicleRows] = await db.query(`
     SELECT owner_id FROM vehicles WHERE id = ?
-  `).get(vehicleId);
+  `, [vehicleId]);
+
+  const vehicle = vehicleRows[0];
 
   if (!vehicle) {
     return res.status(404).json({ success: false, message: "Vehicle not found" });
   }
 
-  const owner = db.prepare(`
+  const [ownerRows] = await db.query(`
     SELECT isApproved FROM users WHERE id = ?
-  `).get(vehicle.owner_id);
+  `, [vehicle.owner_id]);
+
+  const owner = ownerRows[0];
 
   if (!owner || owner.isApproved === 0) {
     return res.status(400).json({
@@ -98,9 +104,9 @@ exports.approveVehicle = (req, res) => {
     });
   }
 
-  db.prepare(`
+  await db.query(`
     UPDATE vehicles SET status = 'APPROVED' WHERE id = ?
-  `).run(vehicleId);
+  `, [vehicleId]);
 
   res.json({ success: true, message: "Vehicle approved successfully" });
 };
@@ -109,13 +115,12 @@ exports.approveVehicle = (req, res) => {
 // =============================
 // REJECT VEHICLE
 // =============================
-exports.rejectVehicle = (req, res) => {
-
+exports.rejectVehicle = async (req, res) => { // Added async
   const vehicleId = req.params.id;
 
-  db.prepare(`
+  await db.query(`
     DELETE FROM vehicles WHERE id = ?
-  `).run(vehicleId);
+  `, [vehicleId]);
 
   res.json({ success: true, message: "Vehicle rejected successfully" });
 };
@@ -124,9 +129,8 @@ exports.rejectVehicle = (req, res) => {
 // =====================================
 // GET ALL PENDING PAYMENTS
 // =====================================
-exports.getPendingPayments = (req, res) => {
-
-  const payments = db.prepare(`
+exports.getPendingPayments = async (req, res) => { // Added async
+  const [payments] = await db.query(`
     SELECT 
       p.id,
       p.booking_id,
@@ -140,7 +144,7 @@ exports.getPendingPayments = (req, res) => {
     LEFT JOIN users u ON p.user_id = u.id
     LEFT JOIN users o ON p.owner_id = o.id
     WHERE p.status = 'PENDING'
-  `).all();
+  `);
 
   res.json({
     success: true,
@@ -151,13 +155,14 @@ exports.getPendingPayments = (req, res) => {
 // =====================================
 // MARK PAYMENT AS PAID
 // =====================================
-exports.approvePayment = (req, res) => {
-
+exports.approvePayment = async (req, res) => { // Added async
   const paymentId = req.params.id;
 
-  const payment = db.prepare(`
+  const [paymentRows] = await db.query(`
     SELECT * FROM pending_payments WHERE id = ?
-  `).get(paymentId);
+  `, [paymentId]);
+  
+  const payment = paymentRows[0];
 
   if (!payment) {
     return res.status(404).json({
@@ -173,11 +178,11 @@ exports.approvePayment = (req, res) => {
     });
   }
 
-  db.prepare(`
+  await db.query(`
     UPDATE pending_payments
     SET status = 'PAID'
     WHERE id = ?
-  `).run(paymentId);
+  `, [paymentId]);
 
   res.json({
     success: true,
@@ -188,30 +193,31 @@ exports.approvePayment = (req, res) => {
 // =====================================
 // SYNC COMPLETED BOOKINGS TO PAYMENTS
 // =====================================
-exports.syncCompletedPayments = (req, res) => {
+exports.syncCompletedPayments = async (req, res) => { // Added async
 
   // Find completed bookings
-  const completedBookings = db.prepare(`
+  const [completedBookings] = await db.query(`
     SELECT b.id, b.total_price, v.owner_id
     FROM bookings b
     JOIN vehicles v ON b.vehicle_id = v.id
     WHERE b.status = 'COMPLETED'
-  `).all();
+  `);
 
   let createdCount = 0;
 
   for (const booking of completedBookings) {
 
     // Check if payment already exists
-    const existing = db.prepare(`
+    const [existingRows] = await db.query(`
       SELECT id FROM pending_payments
       WHERE booking_id = ?
         AND type = 'PAY_TO_OWNER'
-    `).get(booking.id);
+    `, [booking.id]);
+
+    const existing = existingRows[0];
 
     if (!existing) {
-
-      db.prepare(`
+      await db.query(`
         INSERT INTO pending_payments (
           booking_id,
           owner_id,
@@ -219,11 +225,11 @@ exports.syncCompletedPayments = (req, res) => {
           type
         )
         VALUES (?, ?, ?, 'PAY_TO_OWNER')
-      `).run(
+      `, [
         booking.id,
         booking.owner_id,
         booking.total_price
-      );
+      ]);
 
       createdCount++;
     }
@@ -237,18 +243,16 @@ exports.syncCompletedPayments = (req, res) => {
 };
 
 
-
 // =============================
 // GET PENDING USERS (FULL INFO)
 // =============================
-exports.getPendingUsers = (req, res) => {
+exports.getPendingUsers = async (req, res) => { // Added async
 
-  const users = db.prepare(`
+  const [users] = await db.query(`
     SELECT id, name, email, phone_number, role, created_at
     FROM users
     WHERE isApproved = 0
-  `).all();
-   
+  `);
 
   const data = users.map(u => {
     let aadhar_url;
@@ -262,7 +266,8 @@ exports.getPendingUsers = (req, res) => {
     return {
       ...u,
       aadhar_url
-    };});
+    };
+  });
 
   res.json({ success: true, data });
 };
@@ -271,28 +276,27 @@ exports.getPendingUsers = (req, res) => {
 // =============================
 // APPROVE USER
 // =============================
-exports.approveUser = (req, res) => {
+exports.approveUser = async (req, res) => { // Added async
 
   const userId = req.params.id;
 
-  db.prepare(`
+  await db.query(`
     UPDATE users SET isApproved = 1 WHERE id = ?
-  `).run(userId);
+  `, [userId]);
 
   res.json({ success: true, message: "User approved successfully" });
 };
 
-
 // =============================
 // REJECT USER
 // =============================
-exports.rejectUser = (req, res) => {
+exports.rejectUser = async (req, res) => { // Added async
 
   const userId = req.params.id;
 
-  db.prepare(`
+  await db.query(`
     DELETE FROM users WHERE id = ?
-  `).run(userId);
+  `, [userId]); // Wrapped in array
 
   res.json({ success: true, message: "User rejected successfully" });
 };
@@ -305,9 +309,12 @@ exports.viewVehicleDoc = async (req, res) => {
 
   const { vehicleId, fileName } = req.params;
 
-  const vehicle = db.prepare(`
+  // MySQL destructuring [rows]
+  const [vehicleRows] = await db.query(`
     SELECT owner_id FROM vehicles WHERE id = ?
-  `).get(vehicleId);
+  `, [vehicleId]);
+
+  const vehicle = vehicleRows[0];
 
   if (!vehicle) {
     return res.status(404).json({ success: false, message: "Vehicle not found" });
@@ -315,45 +322,39 @@ exports.viewVehicleDoc = async (req, res) => {
 
   const filePath = `owners/${vehicle.owner_id}/vehicles/${vehicleId}/${fileName}`;
 
-  try{
-
-  const fileBuffer = await decryptFile(filePath);
-  res.setHeader("Content-Type", "image/jpeg");
-  res.send(fileBuffer);
+  try {
+    const fileBuffer = await decryptFile(filePath);
+    res.setHeader("Content-Type", "image/jpeg");
+    res.send(fileBuffer);
   } catch (error) {
+    if (error.message === "FILE_NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        message: "Image not found"
+      });
+    }
 
-  if (error.message === "FILE_NOT_FOUND") {
-    return res.status(404).json({
+    return res.status(500).json({
       success: false,
-      message: "Image not found"
+      message: "Failed to load image"
     });
   }
-
-  return res.status(500).json({
-    success: false,
-    message: "Failed to load image"
-  });
-}
 };
 
 
-exports.viewOwnerDoc =async (req, res) => {
+exports.viewOwnerDoc = async (req, res) => {
 
   const { ownerId } = req.params;
-
   const filePath = `owners/${ownerId}/aadhar`;
 
   try {
-
     const fileBuffer = await decryptFile(filePath);
 
     res.setHeader("Content-Type", "image/jpeg");
     res.setHeader("Content-Length", fileBuffer.length);
-
     res.end(fileBuffer);
 
   } catch (error) {
-
     if (error.message === "FILE_NOT_FOUND") {
       return res.status(404).json({
         success: false,
@@ -362,7 +363,6 @@ exports.viewOwnerDoc =async (req, res) => {
     }
 
     console.error(error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to load image"
@@ -374,20 +374,16 @@ exports.viewOwnerDoc =async (req, res) => {
 exports.viewUserDoc = async (req, res) => {
 
   const { userId } = req.params;
-
   const filePath = `users/${userId}/aadhar`;
 
   try {
-
     const fileBuffer = await decryptFile(filePath);
 
     res.setHeader("Content-Type", "image/jpeg");
     res.setHeader("Content-Length", fileBuffer.length);
-
     res.end(fileBuffer);
 
   } catch (error) {
-
     if (error.message === "FILE_NOT_FOUND") {
       return res.status(404).json({
         success: false,
@@ -396,7 +392,6 @@ exports.viewUserDoc = async (req, res) => {
     }
 
     console.error(error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to load image"
@@ -407,9 +402,10 @@ exports.viewUserDoc = async (req, res) => {
 // =====================================
 // 1. ALL VEHICLES ORDER BY BOOKINGS
 // =====================================
-exports.getAllVehiclesAnalytics = (req, res) => {
+exports.getAllVehiclesAnalytics = async (req, res) => { // Added async
   try {
-    const vehicles = db.prepare(`
+    // MySQL destructuring [rows]
+    const [vehicles] = await db.query(`
       SELECT 
         v.id,
         v.vehicle_number,
@@ -424,7 +420,7 @@ exports.getAllVehiclesAnalytics = (req, res) => {
       LEFT JOIN bookings b ON b.vehicle_id = v.id
       GROUP BY v.id
       ORDER BY total_bookings DESC
-    `).all();
+    `);
 
     const data = vehicles.map(v => ({
       ...v,
@@ -437,13 +433,12 @@ exports.getAllVehiclesAnalytics = (req, res) => {
   }
 };
 
-
 // =====================================
 // 2. ALL OWNERS ANALYTICS
 // =====================================
-exports.getAllOwnersAnalytics = (req, res) => {
+exports.getAllOwnersAnalytics = async (req, res) => { // Added async
   try {
-    const owners = db.prepare(`
+    const [owners] = await db.query(`
       SELECT 
         u.id,
         u.name,
@@ -458,7 +453,7 @@ exports.getAllOwnersAnalytics = (req, res) => {
       WHERE u.role = 'OWNER'
       GROUP BY u.id
       ORDER BY vehicles_count DESC
-    `).all();
+    `);
 
     res.json({ success: true, data: owners });
   } catch (err) {
@@ -470,9 +465,9 @@ exports.getAllOwnersAnalytics = (req, res) => {
 // =====================================
 // 3. ALL USERS ANALYTICS
 // =====================================
-exports.getAllUsersAnalytics = (req, res) => {
+exports.getAllUsersAnalytics = async (req, res) => { // Added async
   try {
-    const users = db.prepare(`
+    const [users] = await db.query(`
       SELECT 
         u.id,
         u.name,
@@ -485,7 +480,7 @@ exports.getAllUsersAnalytics = (req, res) => {
       WHERE u.role = 'USER'
       GROUP BY u.id
       ORDER BY bookings_count DESC
-    `).all();
+    `);
 
     res.json({ success: true, data: users });
   } catch (err) {
@@ -497,14 +492,16 @@ exports.getAllUsersAnalytics = (req, res) => {
 // =====================================
 // 4. OWNER DETAILS
 // =====================================
-exports.getOwnerDetails = (req, res) => {
+exports.getOwnerDetails = async (req, res) => { // Added async
   try {
     const ownerId = req.params.id;
 
-    const owner = db.prepare(`
+    const [ownerRows] = await db.query(`
       SELECT * FROM users
       WHERE id = ? AND role = 'OWNER'
-    `).get(ownerId);
+    `, [ownerId]);
+
+    const owner = ownerRows[0];
 
     if (!owner) {
       return res.status(404).json({
@@ -513,10 +510,10 @@ exports.getOwnerDetails = (req, res) => {
       });
     }
 
-    const vehicles = db.prepare(`
+    const [vehicles] = await db.query(`
       SELECT id FROM vehicles
       WHERE owner_id = ?
-    `).all(ownerId);
+    `, [ownerId]);
 
     res.json({
       success: true,
@@ -534,13 +531,15 @@ exports.getOwnerDetails = (req, res) => {
 // =====================================
 // 5. VEHICLE DETAILS
 // =====================================
-exports.getVehicleDetailsFull = (req, res) => {
+exports.getVehicleDetailsFull = async (req, res) => { // Added async
   try {
     const vehicleId = req.params.id;
 
-    const vehicle = db.prepare(`
+    const [vehicleRows] = await db.query(`
       SELECT * FROM vehicles WHERE id = ?
-    `).get(vehicleId);
+    `, [vehicleId]);
+
+    const vehicle = vehicleRows[0];
 
     if (!vehicle) {
       return res.status(404).json({
@@ -549,10 +548,10 @@ exports.getVehicleDetailsFull = (req, res) => {
       });
     }
 
-    const bookings = db.prepare(`
+    const [bookings] = await db.query(`
       SELECT id FROM bookings
       WHERE vehicle_id = ?
-    `).all(vehicleId);
+    `, [vehicleId]);
 
     res.json({
       success: true,
@@ -570,13 +569,15 @@ exports.getVehicleDetailsFull = (req, res) => {
 // =====================================
 // 6. USER DETAILS
 // =====================================
-exports.getUserDetailsFull = (req, res) => {
+exports.getUserDetailsFull = async (req, res) => { // Added async
   try {
     const userId = req.params.id;
 
-    const user = db.prepare(`
+    const [userRows] = await db.query(`
       SELECT * FROM users WHERE id = ?
-    `).get(userId);
+    `, [userId]);
+
+    const user = userRows[0];
 
     if (!user) {
       return res.status(404).json({
@@ -585,10 +586,10 @@ exports.getUserDetailsFull = (req, res) => {
       });
     }
 
-    const bookings = db.prepare(`
+    const [bookings] = await db.query(`
       SELECT id FROM bookings
       WHERE user_id = ?
-    `).all(userId);
+    `, [userId]);
 
     res.json({
       success: true,
@@ -601,19 +602,18 @@ exports.getUserDetailsFull = (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-
 // =====================================
 // 7. BOOKING DETAILS
 // =====================================
-exports.getBookingDetails = (req, res) => {
+exports.getBookingDetails = async (req, res) => { // Added async
   try {
     const bookingId = req.params.id;
 
-    const booking = db.prepare(`
+    // Using your helper: getOne
+    const booking = await getOne(`
       SELECT * FROM bookings
       WHERE id = ?
-    `).get(bookingId);
+    `, [bookingId]);
 
     if (!booking) {
       return res.status(404).json({
@@ -630,10 +630,11 @@ exports.getBookingDetails = (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 // =====================================
 // UPDATE USER BLOCK STATUS
 // =====================================
-exports.updateUserBlockStatus = (req, res) => {
+exports.updateUserBlockStatus = async (req, res) => { // Added async
 
   const userId = req.params.id;
   const { action } = req.body;
@@ -645,9 +646,9 @@ exports.updateUserBlockStatus = (req, res) => {
     });
   }
 
-  const user = db.prepare(`
+  const user = await getOne(`
     SELECT id FROM users WHERE id = ?
-  `).get(userId);
+  `, [userId]);
 
   if (!user) {
     return res.status(404).json({
@@ -660,10 +661,10 @@ exports.updateUserBlockStatus = (req, res) => {
   // action false → block → isBlocked = 1
   const newStatus = action ? 0 : 1;
 
-  db.prepare(`
+  await db.query(`
     UPDATE users SET isBlocked = ?
     WHERE id = ?
-  `).run(newStatus, userId);
+  `, [newStatus, userId]);
 
   res.json({
     success: true,
@@ -677,7 +678,7 @@ exports.updateUserBlockStatus = (req, res) => {
 // =====================================
 // UPDATE VEHICLE BLOCK STATUS
 // =====================================
-exports.updateVehicleBlockStatus = (req, res) => {
+exports.updateVehicleBlockStatus = async (req, res) => { // Added async
 
   const vehicleId = req.params.id;
   const { action } = req.body;
@@ -689,9 +690,9 @@ exports.updateVehicleBlockStatus = (req, res) => {
     });
   }
 
-  const vehicle = db.prepare(`
+  const vehicle = await getOne(`
     SELECT id FROM vehicles WHERE id = ?
-  `).get(vehicleId);
+  `, [vehicleId]);
 
   if (!vehicle) {
     return res.status(404).json({
@@ -702,10 +703,10 @@ exports.updateVehicleBlockStatus = (req, res) => {
 
   const newStatus = action ? 0 : 1;
 
-  db.prepare(`
+  await db.query(`
     UPDATE vehicles SET isBlocked = ?
     WHERE id = ?
-  `).run(newStatus, vehicleId);
+  `, [newStatus, vehicleId]);
 
   res.json({
     success: true,
@@ -714,3 +715,9 @@ exports.updateVehicleBlockStatus = (req, res) => {
       : "Vehicle blocked successfully"
   });
 };
+
+// Your Helper Function
+async function getOne(query, params) {
+  const [rows] = await db.query(query, params);
+  return rows[0] || null; // Added || null for safety
+}
