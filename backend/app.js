@@ -1,45 +1,69 @@
 require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const http = require("http");
 const { Server } = require("socket.io");
 
+// 🔥 Catch hidden crashes
+process.on("uncaughtException", (err) => {
+  console.error("💥 Uncaught Exception:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("💥 Unhandled Rejection:", err);
+});
+
 const initDatabase = require("./src/config/initDb");
 
 const app = express();
 const server = http.createServer(app);
 
-// CORS
+console.log("🚀 Starting Server...");
+console.log("🌍 ENV PORT:", process.env.PORT);
+
+// ✅ FIXED CORS (IMPORTANT)
 app.use(cors({
- 
   origin: "*",
-  credentials: true
+  credentials: false
 }));
 
-// Socket
-const io = new Server(server, {
-  cors: {
-    // origin: "http://localhost:5173",
-    origin: "*",
-    // origin: true,
-    credentials: true
-  }
+// 🔥 Request logger (VERY IMPORTANT)
+app.use((req, res, next) => {
+  console.log(`📡 ${req.method} ${req.url}`);
+  next();
 });
-
-app.set("io", io);
-
-// 🔥 Socket logic file
-const chatSocket = require("./src/socket/chat.socket");
-chatSocket(io);
 
 // Middlewares
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static("public"));
 
-// DB
-initDatabase();
+// 🔥 Socket setup
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    credentials: false
+  }
+});
+
+app.set("io", io);
+
+// 🔥 Socket logic
+const chatSocket = require("./src/socket/chat.socket");
+chatSocket(io);
+
+// 🔥 DB Init with logging
+(async () => {
+  try {
+    console.log("📦 Connecting to Database...");
+    await initDatabase();
+    console.log("✅ Database Ready");
+  } catch (err) {
+    console.error("❌ DB ERROR:", err);
+  }
+})();
 
 // Routes
 const errorMiddleware = require("./src/middleware/error.middleware");
@@ -57,21 +81,17 @@ app.use("/api/common", commonRoutes);
 app.use("/api/owner", ownerRoutes);
 app.use("/api/chat", chatRoutes);
 
-// Test route
+// ✅ Health check route (IMPORTANT for Railway)
 app.get("/", (req, res) => {
-  res.send("Vehicle Rental API Running");
+  res.status(200).send("✅ Vehicle Rental API Running");
 });
 
 // Error handler
 app.use(errorMiddleware);
 
-// Start server
+// ✅ Railway PORT FIX (CRITICAL)
 const PORT = process.env.PORT || 8080;
 
-// server.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
-
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
