@@ -43,8 +43,8 @@ app.use(express.static("public"));
 // 🔥 Socket setup
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    credentials: false
+    origin: "http://localhost:5173",
+    credentials: true
   }
 });
 
