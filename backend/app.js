@@ -25,7 +25,7 @@ console.log("🌍 ENV PORT:", process.env.PORT);
 
 // ✅ FIXED CORS (IMPORTANT)
 app.use(cors({
-  origin: "*",
+  origin: "http://localhost:5173",
   credentials: false
 }));
 
