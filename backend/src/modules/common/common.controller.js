@@ -133,8 +133,8 @@ const login = async (req, res) => {
     // 5. Set Cookie and Respond
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // Set to true if using HTTPS
-      sameSite: "lax",
+      secure: true, // Set to true if using HTTPS
+      sameSite: "None",
       maxAge: 24 * 60 * 60 * 1000
     });
 
@@ -150,7 +150,7 @@ const login = async (req, res) => {
 
 const logout = (req, res) => {
   console.log("logout calls");
-  res.clearCookie("token", { httpOnly: true, secure: false, sameSite: "lax" });
+  res.clearCookie("token", { httpOnly: true, secure: true, sameSite: "None" });
   res.json({ success: true, message: "Logged out successfully" });
 };
 // =============================
