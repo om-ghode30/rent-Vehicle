@@ -11,6 +11,8 @@ export default function VehicleDetails() {
 
   const { getVehicleDetails, createBooking } = useData();
 
+  const [driverName, setDriverName] = useState("");
+
   const [currentImage, setCurrentImage] = useState(0);
   const [vehicleData, setVehicleData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,10 +33,10 @@ export default function VehicleDetails() {
 
   const handleBooking = async (e) => {
     e.preventDefault();
-    if (!startDate || !endDate || !license) {
-      alert("Please fill all fields including license");
-      return;
-    }
+    if (!startDate || !endDate || !license || !driverName) {
+  alert("Please fill all fields including driver name & license");
+  return;
+}
 
     try {
       setBookingLoading(true);
@@ -42,6 +44,7 @@ export default function VehicleDetails() {
       formData.append("vehicle_id", id);
       formData.append("start_datetime", startDate);
       formData.append("end_datetime", endDate);
+      formData.append("driver_name", driverName); 
       formData.append("license", license);
 
       const res = await createBooking(formData);
@@ -52,7 +55,7 @@ export default function VehicleDetails() {
         alert(res.message || "Booking failed");
       }
     } catch (error) {
-      alert("Booking error");
+      alert(error.message); 
     } finally {
       setBookingLoading(false);
     }
@@ -185,6 +188,20 @@ export default function VehicleDetails() {
                     />
                   </div>
                 </div>
+
+                {/* DRIVER NAME */}
+<div className="space-y-1">
+  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+    Driver Name
+  </label>
+  <input
+    type="text"
+    placeholder="Enter driver name"
+    value={driverName}
+    onChange={(e) => setDriverName(e.target.value)}
+    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+  />
+</div>
 
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Driving License (Photo)</label>

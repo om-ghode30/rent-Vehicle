@@ -184,10 +184,12 @@ export const getVehicleDetailsPublic = (id) =>
   API.get(`/common/vehicles/${id}`);
 
 // ================= BOOKING =================
+// export const createBooking = (formData) =>
+//   API.post("/booking", formData, {
+//     headers: { "Content-Type": "multipart/form-data" },
+//   });
 export const createBooking = (formData) =>
-  API.post("/booking", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  API.post("/booking", formData);
 
 export const getMyBookings = () =>
   API.get("/booking/my");

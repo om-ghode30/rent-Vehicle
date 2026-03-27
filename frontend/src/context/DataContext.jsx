@@ -139,15 +139,18 @@ const register = async (formData) => {
     }
   };
 
-  const createBooking = async (formData) => {
+const createBooking = async (formData) => {
+  try {
     const res = await apiCreateBooking(formData);
-
-    if (!res.data.success) {
-      throw new Error(res.data.message || "Booking failed");
-    }
-
     return res.data;
-  };
+  } catch (err) {
+    console.log("BOOKING ERROR:", err.response?.data); // 🔥 DEBUG
+
+    throw new Error(
+      err.response?.data?.message || "Booking failed"
+    );
+  }
+};
 
   const fetchMyBookings = async () => {
     try {
