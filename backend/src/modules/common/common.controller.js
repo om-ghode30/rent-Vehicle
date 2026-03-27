@@ -53,28 +53,6 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: "Email already registered" });
     }
 
-    // 4. Verify OTP Record
-    console.log(`[${requestId}] [REGISTER] Fetching verified OTP record for ${email}...`);
-    const otpRecord = await getOne(`
-      SELECT * FROM otp_verifications 
-      WHERE email = ? AND is_verified = 1
-      AND expires_at > NOW()
-      ORDER BY id DESC LIMIT 1
-    `, [email]);
-
-    if (!otpRecord) {
-      console.error(`[${requestId}] [REGISTER] OTP Error: No valid/verified OTP found for ${email}`);
-      return res.status(400).json({ success: false, message: "Please verify OTP first" });
-    }
-
-    // Double check expiry in JS logic
-    const now = new Date();
-    const expiry = new Date(otpRecord.expires_at);
-    if (expiry < now) {
-      console.error(`[${requestId}] [REGISTER] OTP Error: Record found but expired. Expiry: ${otpRecord.expires_at}, Now: ${now.toISOString()}`);
-      return res.status(400).json({ success: false, message: "OTP expired" });
-    }
-
     // 5. Hash Password
     console.log(`[${requestId}] [REGISTER] Hashing password...`);
     const hashedPassword = bcrypt.hashSync(password, 10);
