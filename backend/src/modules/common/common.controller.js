@@ -135,7 +135,7 @@ const login = async (req, res) => {
       httpOnly: true,
       secure: true, // Set to true if using HTTPS
       sameSite: "None",
-      maxAge: 24 * 60 * 60 * 1000
+      // maxAge: 24 * 60 * 60 * 1000
     });
 
     console.log(`[${requestId}] [LOGIN] Success: Session started for ${email}`);

@@ -106,7 +106,7 @@ exports.createBooking = async (req, res) => {
     }
 
     // 5. Lock
-    const lockResult = acquireVehicleLock(vehicle_id);
+    const lockResult = await acquireVehicleLock(vehicle_id);
     if (!lockResult.success) {
       await conn.rollback();
       return res.status(400).json({
@@ -139,7 +139,7 @@ exports.createBooking = async (req, res) => {
       await encryptFile(req.file.path, `bookings/${bookingId}/license`);
     } catch (error) {
       await conn.rollback();
-      if (lockAcquired) releaseVehicleLock(vehicle_id);
+      if (lockAcquired) {  await releaseVehicleLock(vehicle_id);}
       return res.status(500).json({
         success: false,
         message: "Failed to process license image"
@@ -152,7 +152,7 @@ exports.createBooking = async (req, res) => {
       paymentResponse = await processPayment(totalPrice, bookingId);
     } catch (error) {
       await conn.rollback();
-      if (lockAcquired) releaseVehicleLock(vehicle_id);
+      if (lockAcquired) {  await releaseVehicleLock(vehicle_id);}
       return res.status(500).json({
         success: false,
         message: "Payment processing error"
@@ -161,7 +161,7 @@ exports.createBooking = async (req, res) => {
 
     if (!paymentResponse.success) {
       await conn.rollback();
-      if (lockAcquired) releaseVehicleLock(vehicle_id);
+      if (lockAcquired) {  await releaseVehicleLock(vehicle_id);}
       return res.json({
         success: false,
         message: "Payment failed"
@@ -176,7 +176,7 @@ exports.createBooking = async (req, res) => {
 
     await conn.commit();
 
-    if (lockAcquired) releaseVehicleLock(vehicle_id);
+    if (lockAcquired) {  await releaseVehicleLock(vehicle_id);}
 
     res.json({
       success: true,
@@ -188,7 +188,7 @@ exports.createBooking = async (req, res) => {
 
   } catch (err) {
     await conn.rollback();
-    if (lockAcquired) releaseVehicleLock(vehicle_id);
+    if (lockAcquired) {  await releaseVehicleLock(vehicle_id);}
 
     res.status(500).json({
       success: false,

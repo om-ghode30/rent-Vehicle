@@ -1,39 +1,52 @@
 const db = require("../config/db");
-function acquireVehicleLock(vehicle_id) {
 
-  // Clear expired locks
-  db.prepare(`
-    UPDATE vehicles
-    SET is_temporarily_locked = 0
-    WHERE lock_expiry_time < datetime('now')
-  `).run();
+async function acquireVehicleLock(vehicle_id) {
+  try {
+    // 1. Clear expired locks globally
+    // MySQL equivalent of datetime('now') is NOW()
+    await db.query(`
+      UPDATE vehicles 
+      SET is_temporarily_locked = 0 
+      WHERE lock_expiry_time < NOW()
+    `);
 
-  const result = db.prepare(`
-    UPDATE vehicles
-    SET is_temporarily_locked = 1,
-        lock_expiry_time = datetime('now', '+10 minutes')
-    WHERE id = ?
-      AND isBlocked = 0
-      AND (
-        is_temporarily_locked = 0
-        OR lock_expiry_time < datetime('now')
-      )
-  `).run(vehicle_id);
+    // 2. Attempt to acquire lock
+    // MySQL equivalent of datetime('now', '+10 minutes') is NOW() + INTERVAL 10 MINUTE
+    const [result] = await db.query(`
+      UPDATE vehicles
+      SET is_temporarily_locked = 1,
+          lock_expiry_time = NOW() + INTERVAL 10 MINUTE
+      WHERE id = ? 
+        AND isBlocked = 0 
+        AND (
+          is_temporarily_locked = 0 
+          OR lock_expiry_time < NOW()
+        )
+    `, [vehicle_id]);
 
-  if (result.changes === 0) {
-    return { success: false, message: "Vehicle already locked by another user" };
+    // In mysql2, 'affectedRows' is the equivalent of SQLite's 'changes'
+    if (result.affectedRows === 0) {
+      return { success: false, message: "Vehicle already locked or blocked" };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Lock Acquisition Error:", error);
+    return { success: false, message: error.message };
   }
-
-  return { success: true };
 }
 
-function releaseVehicleLock(vehicle_id) {
-  db.prepare(`
-    UPDATE vehicles
-    SET is_temporarily_locked = 0,
-        lock_expiry_time = NULL
-    WHERE id = ?
-  `).run(vehicle_id);
+async function releaseVehicleLock(vehicle_id) {
+  try {
+    await db.query(`
+      UPDATE vehicles
+      SET is_temporarily_locked = 0,
+          lock_expiry_time = NULL
+      WHERE id = ?
+    `, [vehicle_id]);
+  } catch (error) {
+    console.error("Lock Release Error:", error);
+  }
 }
 
 module.exports = {
