@@ -14,10 +14,10 @@ import {
   register as apiRegister,
   checkSession,
   logout as apiLogout,
-  sendOtp as apiSendOtp, 
-  verifyOtp as apiVerifyOtp,
-   sendMessage as apiSendMessage, 
-   getMessages as apiGetMessages 
+
+  // ❌ OTP removed from usage (but kept import safe if backend still has it)
+  sendMessage as apiSendMessage,
+  getMessages as apiGetMessages,
 } from "../api/api";
 
 import {
@@ -43,8 +43,8 @@ export const DataProvider = ({ children }) => {
   const [payments, setPayments] = useState([]);
 
   // ================= USER DATA =================
-const [approvedVehicles, setApprovedVehicles] = useState([]);
-const [myBookings, setMyBookings] = useState([]);
+  const [approvedVehicles, setApprovedVehicles] = useState([]);
+  const [myBookings, setMyBookings] = useState([]);
 
   // ================= LOGIN =================
   const login = async ({ email, password }) => {
@@ -54,7 +54,6 @@ const [myBookings, setMyBookings] = useState([]);
       throw new Error(res.data.message || "Login failed");
     }
 
-    // Backend returns role & name (cookie already set)
     setIsAuthenticated(true);
     setRole(res.data.role?.toLowerCase() || null);
     setName(res.data.name || null);
@@ -63,13 +62,24 @@ const [myBookings, setMyBookings] = useState([]);
   };
 
   // ================= REGISTER =================
-  const register = async (formData) => {
+const register = async (formData) => {
+  try {
     const res = await apiRegister(formData);
     return res.data;
-  };
+  } catch (error) {
+    console.log("FULL ERROR:", error.response); // 🔥 ADD THIS
+    throw error.response?.data || { message: "Registration failed" };
+  }
+};
 
   const registerOwnerAccount = async (formData) => {
-    return await apiRegister(formData);
+    const res = await apiRegister(formData);
+
+    if (!res.data.success) {
+      throw new Error(res.data.message || "Registration failed");
+    }
+
+    return res.data;
   };
 
   // ================= LOGOUT =================
@@ -109,82 +119,73 @@ const [myBookings, setMyBookings] = useState([]);
     }
   }, []);
 
-
+  // ================= USER FEATURES =================
   const fetchApprovedVehicles = async () => {
-  try {
-    const res = await getApprovedVehicles();
-    setApprovedVehicles(res.data?.data || []);
-  } catch (error) {
-    console.error("Vehicle fetch error:", error);
-  }
-};
+    try {
+      const res = await getApprovedVehicles();
+      setApprovedVehicles(res.data?.data || []);
+    } catch (error) {
+      console.error("Vehicle fetch error:", error);
+    }
+  };
 
-const getVehicleDetails = async (id) => {
-  try {
-    const res = await getVehicleDetailsPublic(id);
-    return res.data?.data;
-  } catch (error) {
-    console.error("Vehicle details error:", error);
-    return null;
-  }
-};
+  const getVehicleDetails = async (id) => {
+    try {
+      const res = await getVehicleDetailsPublic(id);
+      return res.data?.data;
+    } catch (error) {
+      console.error("Vehicle details error:", error);
+      return null;
+    }
+  };
 
-const createBooking = async (formData) => {
-  const res = await apiCreateBooking(formData);
-  return res.data;
-};
+  const createBooking = async (formData) => {
+    const res = await apiCreateBooking(formData);
 
-const fetchMyBookings = async () => {
-  try {
-    const res = await apiGetMyBookings();
-    setMyBookings(res.data?.data || []);
-  } catch (error) {
-    console.error("Bookings fetch error:", error);
-  }
-};
+    if (!res.data.success) {
+      throw new Error(res.data.message || "Booking failed");
+    }
 
-const cancelBooking = async (id) => {
-  const res = await apiCancelBooking(id);
-  return res.data;
-};
+    return res.data;
+  };
 
-// ================= OTP =================
-const sendUserOtp = async (email) => {
-  const res = await apiSendOtp(email);
-  if (!res.data.success) {
-    throw new Error(res.data.message || "Failed to send OTP");
-  }
-  return res.data;
-};
+  const fetchMyBookings = async () => {
+    try {
+      const res = await apiGetMyBookings();
+      setMyBookings(res.data?.data || []);
+    } catch (error) {
+      console.error("Bookings fetch error:", error);
+    }
+  };
 
-const verifyUserOtp = async ({ email, otp }) => {
-  const res = await apiVerifyOtp({ email, otp });
-  if (!res.data.success) {
-    throw new Error(res.data.message || "OTP verification failed");
-  }
-  return res.data;
-};
+  const cancelBooking = async (id) => {
+    const res = await apiCancelBooking(id);
 
-// ================= CHAT =================
-const sendChatMessage = async (payload) => {
-  const res = await apiSendMessage(payload);
-  return res.data;
-};
+    if (!res.data.success) {
+      throw new Error(res.data.message || "Cancel failed");
+    }
 
-const fetchChatMessages = async (bookingId) => {
-  const res = await apiGetMessages(bookingId);
-  return res.data?.data || [];
-};
+    return res.data;
+  };
 
-  // ================= SESSION CHECK ON REFRESH =================
+  // ================= CHAT =================
+  const sendChatMessage = async (payload) => {
+    const res = await apiSendMessage(payload);
+    return res.data;
+  };
+
+  const fetchChatMessages = async (bookingId) => {
+    const res = await apiGetMessages(bookingId);
+    return res.data?.data || [];
+  };
+
+  // ================= SESSION CHECK =================
   useEffect(() => {
     const verifySession = async () => {
       try {
         const res = await checkSession();
 
         if (res.data.success) {
-          // Backend returns the current user under `data`.
-          // Accept several shapes to be resilient (data.user, data.data, data)
           const user = res.data.data || res.data.user || res.data;
 
           if (user && (user.id || user.role || user.name)) {
@@ -192,7 +193,6 @@ const fetchChatMessages = async (bookingId) => {
             setRole(user.role ? String(user.role).toLowerCase() : null);
             setName(user.name || null);
           } else {
-            // unexpected shape, treat as not authenticated
             setIsAuthenticated(false);
           }
         } else {
@@ -211,6 +211,7 @@ const fetchChatMessages = async (bookingId) => {
   return (
     <DataContext.Provider
       value={{
+        // AUTH
         isAuthenticated,
         role,
         name,
@@ -219,8 +220,8 @@ const fetchChatMessages = async (bookingId) => {
         logout,
         register,
         registerOwnerAccount,
-        sendUserOtp,
-        verifyUserOtp,
+
+        // ADMIN
         vehicles,
         users,
         payments,
@@ -231,18 +232,18 @@ const fetchChatMessages = async (bookingId) => {
         setUsers,
         setPayments,
 
-
+        // USER
         approvedVehicles,
         myBookings,
+        fetchApprovedVehicles,
+        getVehicleDetails,
+        createBooking,
+        fetchMyBookings,
+        cancelBooking,
 
-fetchApprovedVehicles,
-getVehicleDetails,
-createBooking,
-fetchMyBookings,
-cancelBooking,
-
-sendChatMessage,
-fetchChatMessages,
+        // CHAT
+        sendChatMessage,
+        fetchChatMessages,
       }}
     >
       {children}
@@ -250,10 +251,13 @@ fetchChatMessages,
   );
 };
 
+// ================= CUSTOM HOOK =================
 export const useData = () => {
   const context = useContext(DataContext);
+
   if (!context) {
     throw new Error("useData must be used within DataProvider");
   }
+
   return context;
 };
