@@ -40,7 +40,7 @@ export default function OwnerVehicleDetails() {
   if (!vehicle) return null;
 
   return (
-    <div className="bg-slate-50 min-h-screen">
+    <div className="bg-slate-50 min-h-screen overflow-x-hidden"> {/* FIXED: Added overflow-x-hidden */}
       <Navbar />
       <div className="max-w-7xl mx-auto p-4 md:p-8 lg:p-12">
         
@@ -55,51 +55,52 @@ export default function OwnerVehicleDetails() {
         <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
           
           {/* ================= LEFT COLUMN: IMAGES ================= */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="relative group">
+          <div className="lg:col-span-7 w-full max-w-full overflow-hidden space-y-4"> {/* FIXED: Added width constraints */}
+            <div className="relative group bg-white rounded-3xl md:rounded-[2rem] shadow-xl border-2 md:border-4 border-white overflow-hidden aspect-[4/3] md:h-[450px] lg:h-[500px]">
               {images.length > 0 ? (
                 <>
                   <img
                     src={assetUrl(images[currentImage])}
                     alt="vehicle main"
-                    className="w-full h-[300px] md:h-[450px] lg:h-[500px] object-cover rounded-[2rem] shadow-2xl border-4 border-white"
+                    // FIXED: Changed to h-full/w-full and object-contain for mobile safety
+                    className="w-full h-full object-contain md:object-cover transition-all duration-500"
                   />
                   
                   {images.length > 1 && (
                     <>
                       <button
                         onClick={() => setCurrentImage((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-blue-600 hover:text-white p-3 rounded-full shadow-lg transition-all"
+                        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-blue-600 hover:text-white p-2 md:p-3 rounded-full shadow-lg transition-all z-10"
                       >
-                        <FaChevronLeft />
+                        <FaChevronLeft className="text-sm md:text-base" />
                       </button>
 
                       <button
                         onClick={() => setCurrentImage((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-blue-600 hover:text-white p-3 rounded-full shadow-lg transition-all"
+                        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-blue-600 hover:text-white p-2 md:p-3 rounded-full shadow-lg transition-all z-10"
                       >
-                        <FaChevronRight />
+                        <FaChevronRight className="text-sm md:text-base" />
                       </button>
                     </>
                   )}
                 </>
               ) : (
-                <div className="w-full h-[300px] bg-slate-200 rounded-[2rem] flex items-center justify-center text-slate-400">
+                <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400">
                   No Images Available
                 </div>
               )}
             </div>
 
-            {/* THUMBNAILS */}
-            <div className="flex md:grid md:grid-cols-5 gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {/* THUMBNAILS - Improved scroll behavior */}
+            <div className="flex gap-2 overflow-x-auto pb-4 px-1 scrollbar-hide md:grid md:grid-cols-5 md:gap-3">
               {images.map((img, index) => (
                 <img
                   key={index}
                   src={assetUrl(img)}
                   alt={`thumbnail ${index}`}
                   onClick={() => setCurrentImage(index)}
-                  className={`h-20 w-24 md:w-full flex-shrink-0 object-cover rounded-2xl cursor-pointer transition-all border-4 ${
-                    currentImage === index ? "border-blue-500 scale-95 shadow-lg" : "border-white hover:border-blue-200"
+                  className={`h-16 w-20 md:h-20 md:w-full flex-shrink-0 object-cover rounded-xl md:rounded-2xl cursor-pointer transition-all border-2 md:border-4 ${
+                    currentImage === index ? "border-blue-500 scale-95 shadow-md" : "border-white hover:border-blue-200"
                   }`}
                 />
               ))}
@@ -107,8 +108,8 @@ export default function OwnerVehicleDetails() {
           </div>
 
           {/* ================= RIGHT COLUMN: VEHICLE SPECS ================= */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 p-6 md:p-8 border border-slate-100">
+          <div className="lg:col-span-5 w-full max-w-full space-y-6"> {/* FIXED: Added width constraints */}
+            <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-xl shadow-slate-200/60 p-5 md:p-8 border border-slate-100">
               
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
@@ -122,46 +123,46 @@ export default function OwnerVehicleDetails() {
                     {vehicle.status}
                   </span>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
+                <h1 className="text-2xl md:text-4xl font-black text-slate-900 leading-tight">
                   {vehicle.brand} <span className="text-blue-600">{vehicle.model_name}</span>
                 </h1>
-                <p className="text-slate-400 font-bold text-sm mt-2 uppercase tracking-tighter">Reg: {vehicle.vehicle_number}</p>
+                <p className="text-slate-400 font-bold text-xs md:text-sm mt-2 uppercase tracking-tighter">Reg: {vehicle.vehicle_number}</p>
               </div>
 
-              {/* Pricing Section */}
-              <div className="bg-blue-50 p-6 rounded-3xl flex items-center justify-between mb-8">
+              {/* Pricing Section - Flex adjustment for narrow screens */}
+              <div className="bg-blue-50 p-4 md:p-6 rounded-2xl md:rounded-3xl flex flex-row items-center justify-between gap-2 mb-6 md:mb-8">
                 <div>
-                  <p className="text-blue-800 font-bold text-sm">Your Daily Rate</p>
-                  <p className="text-xs text-blue-600 font-medium">Standard Pricing</p>
+                  <p className="text-blue-800 font-bold text-xs md:text-sm">Your Daily Rate</p>
+                  <p className="text-[10px] text-blue-600 font-medium">Standard Pricing</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-3xl font-black text-blue-700">₹{vehicle.price_per_day}</p>
+                  <p className="text-2xl md:text-3xl font-black text-blue-700 whitespace-nowrap">₹{vehicle.price_per_day}</p>
                   <p className="text-[10px] font-black uppercase text-blue-400 tracking-widest">Per Day</p>
                 </div>
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <div className="grid grid-cols-2 gap-3 md:gap-4 mb-8">
+                <div className="bg-slate-50 p-3 md:p-4 rounded-xl md:rounded-2xl border border-slate-100">
                   <div className="flex items-center gap-2 mb-1 text-slate-400">
-                    <FaClock className="text-xs" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Late Fee</span>
+                    <FaClock className="text-[10px]" />
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Late Fee</span>
                   </div>
-                  <p className="text-lg font-black text-red-500">₹{vehicle.late_fee_per_hour}<span className="text-[10px] text-slate-400 ml-1">/hr</span></p>
+                  <p className="text-base md:text-lg font-black text-red-500">₹{vehicle.late_fee_per_hour}<span className="text-[10px] text-slate-400 ml-1">/hr</span></p>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div className="bg-slate-50 p-3 md:p-4 rounded-xl md:rounded-2xl border border-slate-100">
                   <div className="flex items-center gap-2 mb-1 text-slate-400">
-                    <FaShieldAlt className="text-xs" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Availability</span>
+                    <FaShieldAlt className="text-[10px]" />
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Status</span>
                   </div>
-                  <p className="text-sm font-bold text-slate-700">{vehicle.availability_status}</p>
+                  <p className="text-xs md:text-sm font-bold text-slate-700 truncate">{vehicle.availability_status}</p>
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="space-y-3">
                 <button
-                   className="w-full bg-white text-blue-600 border-2 border-blue-600 py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-blue-50 transition-all"
+                   className="w-full bg-white text-blue-600 border-2 border-blue-600 py-4 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-[0.2em] hover:bg-blue-50 transition-all active:scale-[0.98]"
                 >
                   Manage Availability
                 </button>
