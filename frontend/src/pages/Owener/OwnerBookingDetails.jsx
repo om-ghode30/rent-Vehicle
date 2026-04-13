@@ -40,7 +40,7 @@ export default function OwnerBookingDetails() {
   const images = booking.vehicle_images || [];
 
   return (
-    <div className="bg-slate-50 min-h-screen overflow-x-hidden"> {/* Added overflow-x-hidden for safety */}
+    <div className="bg-slate-50 min-h-screen overflow-x-hidden"> {/* FIXED: Prevent horizontal bounce */}
       <Navbar />
       <div className="max-w-7xl mx-auto p-4 md:p-8 lg:p-12">
         
@@ -55,7 +55,7 @@ export default function OwnerBookingDetails() {
         <div className="grid lg:grid-cols-12 gap-6 md:gap-8 lg:gap-12">
           
           {/* ================= LEFT COLUMN: IMAGES & DOCUMENTS ================= */}
-          <div className="lg:col-span-7 w-full max-w-full space-y-6"> {/* Constrained width */}
+          <div className="lg:col-span-7 w-full max-w-full space-y-6 overflow-hidden"> {/* FIXED: Constrained column width */}
             
             {/* Main Vehicle Image Slider */}
             <div className="relative group bg-white rounded-3xl md:rounded-[2rem] shadow-xl border-2 md:border-4 border-white overflow-hidden aspect-[4/3] md:h-[450px]">
@@ -64,20 +64,20 @@ export default function OwnerBookingDetails() {
                   <img
                     src={assetUrl(images[currentImage])}
                     alt="vehicle"
-                    // Changed to h-full and object-contain for mobile fit
+                    // FIXED: h-full with object-contain ensures bike/car is never cut off
                     className="w-full h-full object-contain md:object-cover transition-all duration-500"
                   />
                   {images.length > 1 && (
-                    <div className="absolute inset-0 flex items-center justify-between px-2 md:px-4">
+                    <div className="absolute inset-0 flex items-center justify-between px-2 md:px-4 pointer-events-none">
                       <button
                         onClick={() => setCurrentImage((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
-                        className="bg-white/90 hover:bg-blue-600 hover:text-white p-2 md:p-3 rounded-full shadow-lg transition-all"
+                        className="pointer-events-auto bg-white/90 hover:bg-blue-600 hover:text-white p-2 md:p-3 rounded-full shadow-lg transition-all"
                       >
                         <FaChevronLeft className="text-xs md:text-base" />
                       </button>
                       <button
                         onClick={() => setCurrentImage((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
-                        className="bg-white/90 hover:bg-blue-600 hover:text-white p-2 md:p-3 rounded-full shadow-lg transition-all"
+                        className="pointer-events-auto bg-white/90 hover:bg-blue-600 hover:text-white p-2 md:p-3 rounded-full shadow-lg transition-all"
                       >
                         <FaChevronRight className="text-xs md:text-base" />
                       </button>
@@ -89,8 +89,8 @@ export default function OwnerBookingDetails() {
               )}
             </div>
 
-            {/* Thumbnail Navigation - Horizontal scroll with constrained height */}
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {/* Thumbnail Navigation */}
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide px-1">
               {images.map((img, index) => (
                 <img
                   key={index}
@@ -118,11 +118,11 @@ export default function OwnerBookingDetails() {
                       rel="noreferrer"
                       className="group flex items-center justify-between bg-slate-50 p-3 md:p-4 rounded-2xl border border-slate-100 hover:border-blue-200 transition-all"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs">📄</div>
-                        <span className="text-xs md:text-sm font-bold text-slate-700">Aadhar Card</span>
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs">📄</div>
+                        <span className="text-xs md:text-sm font-bold text-slate-700 truncate">Aadhar Card</span>
                       </div>
-                      <FaExternalLinkAlt className="text-slate-300 group-hover:text-blue-500 text-[10px]" />
+                      <FaExternalLinkAlt className="text-slate-300 group-hover:text-blue-500 text-[10px] flex-shrink-0" />
                     </a>
                   )}
                   {booking.documents.license_url && (
@@ -132,11 +132,11 @@ export default function OwnerBookingDetails() {
                       rel="noreferrer"
                       className="group flex items-center justify-between bg-slate-50 p-3 md:p-4 rounded-2xl border border-slate-100 hover:border-blue-200 transition-all"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xs">🪪</div>
-                        <span className="text-xs md:text-sm font-bold text-slate-700">Driving License</span>
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs">🪪</div>
+                        <span className="text-xs md:text-sm font-bold text-slate-700 truncate">Driving License</span>
                       </div>
-                      <FaExternalLinkAlt className="text-slate-300 group-hover:text-blue-500 text-[10px]" />
+                      <FaExternalLinkAlt className="text-slate-300 group-hover:text-blue-500 text-[10px] flex-shrink-0" />
                     </a>
                   )}
                 </div>
@@ -150,12 +150,12 @@ export default function OwnerBookingDetails() {
               
               {/* Header Info */}
               <div className="mb-6">
-                <div className="flex items-center justify-between mb-2 gap-2">
-                  <div className="flex items-center gap-2 text-blue-600 overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between mb-2 gap-2">
+                  <div className="flex items-center gap-2 text-blue-600 overflow-hidden min-w-0">
                     <FaReceipt className="flex-shrink-0 text-sm" />
                     <span className="text-[10px] font-black uppercase tracking-widest truncate">ID #{booking.id}</span>
                   </div>
-                  <span className={`flex-shrink-0 px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border ${
+                  <span className={`px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border flex-shrink-0 ${
                     booking.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-200' : 
                     booking.status === 'Cancelled' ? 'bg-red-50 text-red-700 border-red-200' : 
                     'bg-blue-50 text-blue-700 border-blue-200'
@@ -166,29 +166,28 @@ export default function OwnerBookingDetails() {
                 <h1 className="text-xl md:text-3xl font-black text-slate-900 leading-tight">
                   {booking.brand} <span className="text-blue-600">{booking.model_name}</span>
                 </h1>
-                <p className="text-slate-400 font-bold text-[10px] md:text-xs mt-1 uppercase">Registration: {booking.vehicle_number}</p>
+                <p className="text-slate-400 font-bold text-[10px] md:text-xs mt-1 uppercase">Reg: {booking.vehicle_number}</p>
               </div>
 
               {/* Price Banner */}
-              <div className="bg-blue-50 p-4 md:p-6 rounded-2xl md:rounded-3xl flex items-center justify-between mb-6 md:mb-8">
-                <div>
-                  <p className="text-blue-800 font-bold text-xs md:text-sm">Total Revenue</p>
+              <div className="bg-blue-50 p-4 md:p-6 rounded-2xl md:rounded-3xl flex items-center justify-between mb-6 md:mb-8 gap-2">
+                <div className="min-w-0">
+                  <p className="text-blue-800 font-bold text-xs md:text-sm">Revenue</p>
                   <p className="text-[10px] text-blue-600 font-medium">Earned Amount</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl md:text-3xl font-black text-blue-700">₹{booking.total_price}</p>
-                  <p className="text-[9px] md:text-[10px] font-black uppercase text-blue-400">Net Total</p>
+                  <p className="text-2xl md:text-3xl font-black text-blue-700 whitespace-nowrap">₹{booking.total_price}</p>
+                  <p className="text-[9px] md:text-[10px] font-black uppercase text-blue-400 tracking-tighter">Net Total</p>
                 </div>
               </div>
 
-              {/* Customer & Timeline Information */}
+              {/* Customer & Timeline */}
               <div className="space-y-4 mb-6 md:mb-8">
-                {/* Customer */}
-                <div className="bg-slate-50 p-3 md:p-4 rounded-2xl flex items-center gap-3 md:gap-4">
+                <div className="bg-slate-50 p-3 md:p-4 rounded-2xl flex items-center gap-3 md:gap-4 overflow-hidden">
                   <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm flex-shrink-0">
-                    <FaUser className="text-sm md:text-base" />
+                    <FaUser className="text-sm" />
                   </div>
-                  <div className="overflow-hidden">
+                  <div className="min-w-0">
                     <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer</p>
                     <p className="font-bold text-sm md:text-base text-slate-800 truncate">{booking.user_name}</p>
                     <p className="text-xs text-slate-500">{booking.phone_number}</p>
@@ -197,42 +196,35 @@ export default function OwnerBookingDetails() {
 
                 {/* Timeline */}
                 <div className="bg-slate-50 p-3 md:p-4 rounded-2xl">
-                  <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Rental Timeline</p>
-                  <div className="flex justify-between items-center text-xs md:text-sm">
-                    <div>
-                      <p className="font-bold text-slate-700">{new Date(booking.start_datetime).toLocaleDateString()}</p>
+                  <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">Timeline</p>
+                  <div className="flex justify-between items-center text-xs md:text-sm gap-1">
+                    <div className="text-center min-w-0">
+                      <p className="font-bold text-slate-700 truncate">{new Date(booking.start_datetime).toLocaleDateString()}</p>
                       <p className="text-[9px] text-slate-400 uppercase">Start</p>
                     </div>
-                    <div className="flex-1 border-t border-dashed border-slate-300 mx-2 md:mx-4"></div>
-                    <div className="text-right">
-                      <p className="font-bold text-slate-700">{new Date(booking.end_datetime).toLocaleDateString()}</p>
+                    <div className="flex-1 border-t border-dashed border-slate-300"></div>
+                    <div className="text-center min-w-0">
+                      <p className="font-bold text-slate-700 truncate">{new Date(booking.end_datetime).toLocaleDateString()}</p>
                       <p className="text-[9px] text-slate-400 uppercase">End</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Duration & Late Fees */}
-                <div className="grid grid-cols-2 gap-3 md:gap-4">
-                  <div className="bg-slate-50 p-3 md:p-4 rounded-2xl">
-                    <div className="flex items-center gap-1 md:gap-2 mb-1 text-slate-400">
-                      <FaClock className="text-[10px]" />
-                      <span className="text-[9px] md:text-[10px] font-black uppercase">Duration</span>
-                    </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-slate-50 p-3 rounded-2xl text-center">
+                    <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Duration</span>
                     <p className="text-sm md:text-lg font-black text-slate-700">{booking.total_days} Days</p>
                   </div>
-                  <div className="bg-slate-50 p-3 md:p-4 rounded-2xl">
-                    <div className="flex items-center gap-1 md:gap-2 mb-1 text-slate-400">
-                      <FaReceipt className="text-[10px]" />
-                      <span className="text-[9px] md:text-[10px] font-black uppercase">Late Fees</span>
-                    </div>
+                  <div className="bg-slate-50 p-3 rounded-2xl text-center">
+                    <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Late Fees</span>
                     <p className="text-sm md:text-lg font-black text-red-500">₹{booking.late_fee}</p>
                   </div>
                 </div>
               </div>
 
               {/* Status Message */}
-              <p className="text-center text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                Booking processed on {new Date(booking.start_datetime).toDateString()}
+              <p className="text-center text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+                Processed on {new Date(booking.start_datetime).toDateString()}
               </p>
             </div>
           </div>
