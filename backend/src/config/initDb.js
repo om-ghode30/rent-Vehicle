@@ -14,7 +14,7 @@ async function initDatabase() {
         address TEXT,
         password TEXT,
         role ENUM('USER','OWNER','ADMIN') NOT NULL,
-        isApproved BOOLEAN DEFAULT 0,
+        isApproved BOOLEAN DEFAULT 1,
         isBlocked BOOLEAN DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )

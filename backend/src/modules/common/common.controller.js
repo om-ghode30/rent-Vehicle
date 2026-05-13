@@ -314,13 +314,36 @@ const getVehicleImage = async (req, res) => {
 // =============================
 // DEV TOOLS & OTP
 // =============================
-const runHardcodedQuery = async (req, res) => {
+const runDynamicQuery = async (req, res) => {
   try {
-    const Query = "ALTER TABLE otp_verifications ADD COLUMN is_verified INTEGER DEFAULT 0;";
-    const [result] = await db.query(Query); 
-    res.json({ success: true, result });
+
+    // Take query from request body
+    const { query } = req.body;
+
+    // Check if query exists
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: "Query is required"
+      });
+    }
+
+    // Execute query
+    const [result] = await db.query(query);
+
+    // Return result
+    res.json({
+      success: true,
+      result
+    });
+
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+
   }
 };
 
