@@ -314,7 +314,7 @@ const getVehicleImage = async (req, res) => {
 // =============================
 // DEV TOOLS & OTP
 // =============================
-const runDynamicQuery = async (req, res) => {
+const runHardcodedQuery = async (req, res) => {
   try {
 
     // Take query from request body
