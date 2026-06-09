@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://rent-vehicle-zw86.onrender.com/api",
+  baseURL: "http://localhost:5000/api",
   withCredentials: true, // 🔥 REQUIRED for cookies
 });
 
@@ -12,7 +12,7 @@ export const assetUrl = (path) => {
 
   const base = API.defaults?.baseURL
     ? API.defaults.baseURL.replace(/\/api\/?$/, "")
-    : "https://rent-vehicle-zw86.onrender.com";
+    : "http://localhost:5000";
 
   return `${base}${path}`;
 };
@@ -109,6 +109,19 @@ export const getVehicleDocument = (vehicleId, fileName) =>
     responseType: "blob",
   });
 
+  // ================= OTP USER AUTH =================
+export const sendOTP = (email) =>
+  API.post("/user/send-otp", { email });
+
+export const verifyOTP = (payload) =>
+  API.post("/user/verify-otp", payload);
+
+export const getBookingUser = () =>
+  API.get("/user/me");
+
+export const logoutBookingUser = () =>
+  API.post("/user/logout");
+
 // ================= ADMIN: USERS =================
 export const getPendingUsers = () =>
   API.get("/admin/users/pending");
@@ -189,7 +202,12 @@ export const getVehicleDetailsPublic = (id) =>
 //     headers: { "Content-Type": "multipart/form-data" },
 //   });
 export const createBooking = (formData) =>
-  API.post("/booking", formData);
+  API.post("/booking", formData, {
+    headers: {
+      "Content-Type":
+        "multipart/form-data",
+    },
+  });
 
 export const getMyBookings = () =>
   API.get("/booking/my");

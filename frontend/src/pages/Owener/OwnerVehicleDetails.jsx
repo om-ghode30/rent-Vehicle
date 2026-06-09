@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api, { assetUrl } from "../../api/api";
 import Navbar from "../../components/Navbar";
-import { FaChevronLeft, FaChevronRight, FaCar, FaMoneyBillWave, FaShieldAlt, FaClock, FaArrowLeft } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaCar, FaShieldAlt, FaClock, FaArrowLeft } from "react-icons/fa";
 
 export default function OwnerVehicleDetails() {
   const { id } = useParams();
@@ -21,8 +21,8 @@ export default function OwnerVehicleDetails() {
     setLoading(true);
     try {
       const res = await api.get(`/owner/vehicles/${id}`);
-      setVehicle(res.data.data.vehicle);
-      setImages(res.data.data.images || []);
+      setVehicle(res.data.data);
+setImages(res.data.data.images || []);
     } catch (err) {
       alert("Failed to load vehicle");
       navigate("/owner/vehicles");
@@ -107,69 +107,338 @@ export default function OwnerVehicleDetails() {
             </div>
           </div>
 
-          {/* ================= RIGHT COLUMN: VEHICLE SPECS ================= */}
-          <div className="lg:col-span-5 w-full max-w-full space-y-6"> {/* FIXED: Added width constraints */}
-            <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-xl shadow-slate-200/60 p-5 md:p-8 border border-slate-100">
-              
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 text-blue-600">
-                    <FaCar className="text-sm" />
-                    <span className="text-xs font-black uppercase tracking-widest">Owner Portal</span>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                    vehicle.status === 'Approved' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-                  }`}>
-                    {vehicle.status}
-                  </span>
-                </div>
-                <h1 className="text-2xl md:text-4xl font-black text-slate-900 leading-tight">
-                  {vehicle.brand} <span className="text-blue-600">{vehicle.model_name}</span>
-                </h1>
-                <p className="text-slate-400 font-bold text-xs md:text-sm mt-2 uppercase tracking-tighter">Reg: {vehicle.vehicle_number}</p>
-              </div>
+          {/* ================= RIGHT COLUMN: VEHICLE DETAILS ================= */}
 
-              {/* Pricing Section - Flex adjustment for narrow screens */}
-              <div className="bg-blue-50 p-4 md:p-6 rounded-2xl md:rounded-3xl flex flex-row items-center justify-between gap-2 mb-6 md:mb-8">
-                <div>
-                  <p className="text-blue-800 font-bold text-xs md:text-sm">Your Daily Rate</p>
-                  <p className="text-[10px] text-blue-600 font-medium">Standard Pricing</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl md:text-3xl font-black text-blue-700 whitespace-nowrap">₹{vehicle.price_per_day}</p>
-                  <p className="text-[10px] font-black uppercase text-blue-400 tracking-widest">Per Day</p>
-                </div>
-              </div>
+<div className="lg:col-span-5 w-full max-w-full space-y-6">
 
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 md:gap-4 mb-8">
-                <div className="bg-slate-50 p-3 md:p-4 rounded-xl md:rounded-2xl border border-slate-100">
-                  <div className="flex items-center gap-2 mb-1 text-slate-400">
-                    <FaClock className="text-[10px]" />
-                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Late Fee</span>
-                  </div>
-                  <p className="text-base md:text-lg font-black text-red-500">₹{vehicle.late_fee_per_hour}<span className="text-[10px] text-slate-400 ml-1">/hr</span></p>
-                </div>
-                <div className="bg-slate-50 p-3 md:p-4 rounded-xl md:rounded-2xl border border-slate-100">
-                  <div className="flex items-center gap-2 mb-1 text-slate-400">
-                    <FaShieldAlt className="text-[10px]" />
-                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Status</span>
-                  </div>
-                  <p className="text-xs md:text-sm font-bold text-slate-700 truncate">{vehicle.availability_status}</p>
-                </div>
-              </div>
+  <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 p-5 md:p-8 border border-slate-100">
 
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                <button
-                   className="w-full bg-white text-blue-600 border-2 border-blue-600 py-4 rounded-[1.5rem] font-black text-xs md:text-sm uppercase tracking-[0.2em] hover:bg-blue-50 transition-all active:scale-[0.98]"
-                >
-                  Manage Availability
-                </button>
-              </div>
-              
-            </div>
-          </div>
+    {/* TOP HEADER */}
+    <div className="flex items-start justify-between gap-4 mb-6">
+
+      <div>
+
+        <div className="flex items-center gap-2 text-blue-600 mb-2">
+
+          <FaCar className="text-sm" />
+
+          <span className="text-[10px] font-black uppercase tracking-widest">
+
+            Owner Vehicle
+
+          </span>
+
+        </div>
+
+        <h1 className="text-2xl md:text-4xl font-black text-slate-900 leading-tight">
+
+          {vehicle.brand}
+
+          <span className="text-blue-600">
+
+            {" "} {vehicle.model_name}
+
+          </span>
+
+        </h1>
+
+        <p className="text-slate-400 font-bold text-xs mt-2 uppercase tracking-widest">
+
+          {vehicle.vehicle_number}
+
+        </p>
+
+      </div>
+
+      {/* STATUS */}
+      <div className="flex flex-col gap-2">
+
+        <span
+          className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+            vehicle.status === "APPROVED"
+              ? "bg-green-50 text-green-700 border-green-200"
+              : "bg-amber-50 text-amber-700 border-amber-200"
+          }`}
+        >
+
+          {vehicle.status}
+
+        </span>
+
+        <span
+          className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+            vehicle.availability_status ===
+            "AVAILABLE"
+              ? "bg-blue-50 text-blue-700 border-blue-200"
+              : "bg-rose-50 text-rose-700 border-rose-200"
+          }`}
+        >
+
+          {vehicle.availability_status}
+
+        </span>
+
+      </div>
+
+    </div>
+
+    {/* ACTIVE PRICE */}
+    <div
+      className={`rounded-3xl p-5 flex items-center justify-between mb-6 ${
+        vehicle.availability_status ===
+        "AVAILABLE"
+          ? "bg-blue-50"
+          : "bg-rose-50"
+      }`}
+    >
+
+      <div>
+
+        <p className="text-sm font-black text-slate-700">
+
+          Daily Rental
+
+        </p>
+
+        <p className="text-[10px] uppercase tracking-widest font-black text-slate-400 mt-1">
+
+          Current Active Price
+
+        </p>
+
+      </div>
+
+      <div className="text-right">
+
+        <p className="text-3xl font-black text-blue-700">
+
+          ₹{vehicle.daily_price}
+
+        </p>
+
+        <p className="text-[10px] font-black uppercase text-blue-500">
+
+          Per Day
+
+        </p>
+
+      </div>
+
+    </div>
+
+    {/* MINI INFO CARDS */}
+    <div className="grid grid-cols-2 gap-4 mb-6">
+
+      {/* DAILY */}
+      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+
+        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">
+
+          Daily
+
+        </p>
+
+        <p className="text-xl font-black text-blue-600">
+
+          ₹{vehicle.daily_price}
+
+        </p>
+
+      </div>
+
+      {/* HOURLY */}
+      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+
+        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">
+
+          Hourly
+
+        </p>
+
+        <p className="text-xl font-black text-green-600">
+
+          ₹{vehicle.hourly_price}
+
+        </p>
+
+      </div>
+
+      {/* LATE FEE */}
+      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+
+        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">
+
+          Late Fee
+
+        </p>
+
+        <p className="text-xl font-black text-rose-600">
+
+          ₹{vehicle.late_fee_per_hour || 0}
+
+        </p>
+
+      </div>
+
+      {/* LOCATION */}
+      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+
+        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">
+
+          Pickup
+
+        </p>
+
+        <p className="text-sm font-black text-slate-700 truncate">
+
+          {vehicle.pickup_address}
+
+        </p>
+
+      </div>
+
+    </div>
+
+    {/* LOCATION BLOCK */}
+    <div className="bg-slate-50 rounded-3xl p-5 border border-slate-100 mb-6">
+
+      <div className="flex items-center gap-2 mb-3">
+
+        <FaShieldAlt className="text-blue-600 text-sm" />
+
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+
+          Pickup Location
+
+        </p>
+
+      </div>
+
+      <p className="text-sm font-bold text-slate-700 leading-relaxed">
+
+        {vehicle.pickup_address}
+
+      </p>
+
+      {vehicle.pickup_map_link && (
+
+        <a
+          href={vehicle.pickup_map_link}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all"
+        >
+
+          Open Map
+
+        </a>
+
+      )}
+
+    </div>
+
+ {/* ACTION BUTTONS */}
+<div className="grid grid-cols-2 gap-4">
+
+  {/* AVAILABILITY BUTTON */}
+  <button
+    onClick={async () => {
+
+      try {
+
+        const newStatus =
+          vehicle.availability_status ===
+          "AVAILABLE"
+            ? "UNAVAILABLE"
+            : "AVAILABLE";
+
+        await api.patch(
+          `/owner/vehicles/${vehicle.id}/availability`,
+          {
+            availability_status:
+              newStatus,
+          }
+        );
+
+        setVehicle((prev) => ({
+          ...prev,
+          availability_status:
+            newStatus,
+        }));
+
+      } catch (error) {
+
+        alert(
+          "Failed to update availability"
+        );
+
+      }
+
+    }}
+    className={`py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.15em] transition-all active:scale-[0.98] ${
+      vehicle.availability_status ===
+      "AVAILABLE"
+        ? "bg-emerald-50 text-emerald-700 border-2 border-emerald-200 hover:bg-emerald-600 hover:text-white"
+        : "bg-rose-50 text-rose-700 border-2 border-rose-200 hover:bg-rose-600 hover:text-white"
+    }`}
+  >
+
+    {vehicle.availability_status ===
+    "AVAILABLE"
+      ? "Available"
+      : "Unavailable"}
+
+  </button>
+
+  {/* DELETE BUTTON */}
+  <button
+    onClick={async () => {
+
+      const confirmDelete =
+        window.confirm(
+          "Delete this vehicle?"
+        );
+
+      if (!confirmDelete)
+        return;
+
+      try {
+
+        await api.delete(
+          `/owner/vehicles/${vehicle.id}`
+        );
+
+        alert(
+          "Vehicle deleted"
+        );
+
+        navigate(
+          "/owner/vehicles"
+        );
+
+      } catch (error) {
+
+        alert(
+          error?.response?.data
+            ?.message ||
+            "Failed to delete vehicle"
+        );
+
+      }
+
+    }}
+    className="py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.15em] transition-all active:scale-[0.98] bg-rose-50 text-rose-700 border-2 border-rose-200 hover:bg-rose-600 hover:text-white"
+  >
+
+    Delete Vehicle
+
+  </button>
+
+</div>
+
+  </div>
+
+</div>
 
         </div>
       </div>

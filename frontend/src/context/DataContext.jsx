@@ -14,6 +14,10 @@ import {
   register as apiRegister,
   checkSession,
   logout as apiLogout,
+  sendOTP as apiSendOTP,
+verifyOTP as apiVerifyOTP,
+getBookingUser,
+logoutBookingUser,
 
   // ❌ OTP removed from usage (but kept import safe if backend still has it)
   sendMessage as apiSendMessage,
@@ -84,7 +88,17 @@ const register = async (formData) => {
 
   // ================= LOGOUT =================
   const logout = async () => {
-    await apiLogout();
+    try {
+
+  await apiLogout();
+
+} catch {}
+
+try {
+
+  await logoutBookingUser();
+
+} catch {}
 
     setIsAuthenticated(false);
     setRole(null);
@@ -118,6 +132,43 @@ const register = async (formData) => {
       console.error("Payments fetch error:", err);
     }
   }, []);
+
+  // ================= OTP LOGIN =================
+const sendOTP = async (email) => {
+
+  const res = await apiSendOTP(email);
+
+  if (!res.data.success) {
+    throw new Error(
+      res.data.message || "OTP send failed"
+    );
+  }
+
+  return res.data;
+};
+
+const verifyOTP = async ({ email, otp }) => {
+
+  const res = await apiVerifyOTP({
+    email,
+    otp,
+  });
+
+  if (!res.data.success) {
+    throw new Error(
+      res.data.message || "OTP verification failed"
+    );
+  }
+
+  // 🔥 IMPORTANT
+  setIsAuthenticated(true);
+
+  setRole("user");
+
+  setName(email);
+
+  return res.data;
+};
 
   // ================= USER FEATURES =================
   const fetchApprovedVehicles = async () => {
@@ -183,33 +234,84 @@ const createBooking = async (formData) => {
   };
 
   // ================= SESSION CHECK =================
-  useEffect(() => {
-    const verifySession = async () => {
-      try {
-        const res = await checkSession();
+useEffect(() => {
 
-        if (res.data.success) {
-          const user = res.data.data || res.data.user || res.data;
+  const verifySession = async () => {
 
-          if (user && (user.id || user.role || user.name)) {
-            setIsAuthenticated(true);
-            setRole(user.role ? String(user.role).toLowerCase() : null);
-            setName(user.name || null);
-          } else {
-            setIsAuthenticated(false);
-          }
-        } else {
-          setIsAuthenticated(false);
-        }
-      } catch (error) {
-        setIsAuthenticated(false);
-      } finally {
+    try {
+
+      // =========================
+      // ADMIN / OWNER LOGIN
+      // =========================
+      const res = await checkSession();
+
+      if (res.data.success) {
+
+        const user =
+          res.data.data ||
+          res.data.user ||
+          res.data;
+
+        setIsAuthenticated(true);
+
+        setRole(
+          user.role
+            ? String(user.role).toLowerCase()
+            : null
+        );
+
+        setName(user.name || null);
+
         setLoading(false);
-      }
-    };
 
-    verifySession();
-  }, []);
+        return;
+      }
+
+    } catch (error) {
+
+      console.log("Normal auth not found");
+
+    }
+
+    // =========================
+    // OTP USER LOGIN
+    // =========================
+    try {
+
+      const bookingRes =
+        await getBookingUser();
+
+      if (bookingRes.data.success) {
+
+        setIsAuthenticated(true);
+
+        setRole("user");
+
+        setName(
+          bookingRes.data.data?.email
+        );
+
+      } else {
+
+        setIsAuthenticated(false);
+
+      }
+
+    } catch (error) {
+
+      setIsAuthenticated(false);
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  };
+
+  verifySession();
+
+}, []);
 
   return (
     <DataContext.Provider
@@ -247,6 +349,8 @@ const createBooking = async (formData) => {
         // CHAT
         sendChatMessage,
         fetchChatMessages,
+        sendOTP,
+        verifyOTP,
       }}
     >
       {children}

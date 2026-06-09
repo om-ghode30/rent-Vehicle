@@ -2,7 +2,14 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../../context/DataContext";
 import Navbar from "../../components/Navbar";
-import { FaCalendarAlt, FaCar, FaClock, FaReceipt } from "react-icons/fa";
+import {
+  FaCalendarAlt,
+  FaCar,
+  FaClock,
+  FaReceipt,
+  FaMapMarkerAlt,
+  FaExternalLinkAlt,
+} from "react-icons/fa";
 
 export default function MyBookings() {
   const { myBookings, fetchMyBookings, cancelBooking } = useData();
@@ -18,11 +25,11 @@ const handleCancel = async (id) => {
   try {
     const res = await cancelBooking(id);
 
-    if (res.data.success) {
+    if (res.success) {
       alert("Booking cancelled successfully");
       fetchMyBookings();
     } else {
-      alert(res.data.message);
+      alert(res.message);
     }
 
   } catch (err) {
@@ -94,6 +101,46 @@ const handleCancel = async (id) => {
                       </div>
                     </div>
                   </div>
+
+                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+
+  <div className="flex items-center gap-2 mb-2">
+
+    <FaMapMarkerAlt className="text-blue-600 text-sm" />
+
+    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+
+      Pickup Location
+
+    </p>
+
+  </div>
+
+  <p className="text-sm font-bold text-slate-700 leading-relaxed">
+
+    {booking.pickup_address}
+
+  </p>
+
+  {booking.pickup_map_link && (
+
+    <a
+      href={booking.pickup_map_link}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-3 inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all"
+    >
+
+      Open Map
+
+      <FaExternalLinkAlt className="text-[10px]" />
+
+    </a>
+
+  )}
+
+</div>
+
                 </div>
 
                 {/* RIGHT: STATUS & ACTIONS SECTION */}

@@ -1,12 +1,20 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { DataContext } from "../context/DataContext";
-import { FaBars, FaTimes, FaCarSide, FaUserCircle } from "react-icons/fa";
+import {
+  FaBars,
+  FaTimes,
+  FaCarSide,
+  FaUserCircle,
+  FaSearch,
+} from "react-icons/fa";
 
 const Navbar = ({ contactRef }) => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [search, setSearch] =
+  useState("");
 
   // ✅ USE role (NOT user)
   const { isAuthenticated, role, logout } = useContext(DataContext);
@@ -19,7 +27,8 @@ const Navbar = ({ contactRef }) => {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/login");
+      alert("Logout successfully");
+      navigate("/");
     } catch {
       alert("Logout failed");
     }
@@ -31,6 +40,20 @@ const Navbar = ({ contactRef }) => {
       setOpen(false);
     }
   };
+
+  const handleSearch = (e) => {
+
+  e.preventDefault();
+
+  if (!search.trim()) return;
+
+  navigate(
+    `/vehicles?search=${search}`
+  );
+
+  setOpen(false);
+
+};
 
   const navLinkStyles = "relative font-medium text-slate-600 hover:text-blue-600 transition-colors duration-300 py-2";
 
@@ -51,9 +74,48 @@ const Navbar = ({ contactRef }) => {
 
           {/* Desktop Menu */}
           <ul className="hidden md:flex gap-8 items-center">
-            <li>
-              <Link to="/" className={navLinkStyles}>Home</Link>
-            </li>
+            {/* SEARCH BAR */}
+{role !== "owner" &&
+ role !== "admin" && (
+
+  <form
+    onSubmit={handleSearch}
+    className="hidden lg:flex items-center bg-slate-100 rounded-2xl overflow-hidden border border-slate-200"
+  >
+
+    <input
+      type="text"
+      placeholder="Search vehicles..."
+      value={search}
+      onChange={(e) =>
+        setSearch(e.target.value)
+      }
+      className="bg-transparent px-4 py-2 outline-none text-sm w-52"
+    />
+
+    <button
+      type="submit"
+      className="bg-blue-600 text-white px-4 py-3 hover:bg-blue-700 transition-all"
+    >
+
+      <FaSearch />
+
+    </button>
+
+  </form>
+
+)}
+          {/* HOME LINK */}
+{role !== "owner" && (
+  <li>
+    <Link
+      to="/"
+      className={navLinkStyles}
+    >
+      Home
+    </Link>
+  </li>
+)}
 
             {contactRef && (
               <li>
@@ -76,13 +138,13 @@ const Navbar = ({ contactRef }) => {
             )}
 
             {/* USER LINKS */}
+{/* USER LINKS */}
 {isAuthenticated && role === "user" && (
   <>
     <li>
-      <Link to="/vehicles" className={navLinkStyles}>Vehicles</Link>
-    </li>
-    <li>
-      <Link to="/my-bookings" className={navLinkStyles}>My Bookings</Link>
+      <Link to="/my-bookings" className={navLinkStyles}>
+        My Bookings
+      </Link>
     </li>
   </>
 )}
@@ -105,7 +167,7 @@ const Navbar = ({ contactRef }) => {
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <Link to="/login">
+                <Link to="/user-login">
                   <button className="text-slate-700 font-bold px-4 py-2 hover:text-blue-600 transition-colors">
                     Login
                   </button>
@@ -136,11 +198,48 @@ const Navbar = ({ contactRef }) => {
         }`}
       >
         <ul className="p-6 space-y-4">
-          <li>
-            <Link to="/" className="block text-lg font-semibold text-slate-700 p-3 hover:bg-blue-50 rounded-xl transition-colors">
-              Home
-            </Link>
-          </li>
+          {/* MOBILE SEARCH */}
+{role !== "owner" &&
+ role !== "admin" && (
+
+  <form
+    onSubmit={handleSearch}
+    className="flex items-center bg-slate-100 rounded-2xl overflow-hidden border border-slate-200"
+  >
+
+    <input
+      type="text"
+      placeholder="Search vehicles..."
+      value={search}
+      onChange={(e) =>
+        setSearch(e.target.value)
+      }
+      className="flex-1 bg-transparent px-4 py-4 outline-none text-sm"
+    />
+
+    <button
+      type="submit"
+      className="bg-blue-600 text-white px-5 py-4"
+    >
+
+      <FaSearch />
+
+    </button>
+
+  </form>
+
+)}
+          {/* MOBILE HOME LINK */}
+{role !== "owner" && (
+  <li>
+    <Link
+      to="/"
+      className="block text-lg font-semibold text-slate-700 p-3 hover:bg-blue-50 rounded-xl transition-colors"
+    >
+      Home
+    </Link>
+  </li>
+)}
 
           {contactRef && (
             <li>
@@ -167,14 +266,6 @@ const Navbar = ({ contactRef }) => {
 
           {isAuthenticated && role === "user" && (
   <div className="pt-2 space-y-4 border-t border-slate-50">
-    <li>
-      <Link
-        to="/vehicles"
-        className="block text-lg font-semibold text-slate-700 p-3 hover:bg-blue-50 rounded-xl transition-colors"
-      >
-        Vehicles
-      </Link>
-    </li>
 
     <li>
       <Link
@@ -197,7 +288,7 @@ const Navbar = ({ contactRef }) => {
               </button>
             ) : (
               <div className="flex flex-col gap-3">
-                <Link to="/login" className="w-full">
+                <Link to="/user-login" className="w-full">
                   <button className="w-full bg-slate-50 text-slate-700 border border-slate-200 py-4 rounded-2xl font-bold active:scale-95 transition-all">
                     Login
                   </button>

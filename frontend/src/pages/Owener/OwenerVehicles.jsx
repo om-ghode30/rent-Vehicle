@@ -3,7 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { getMyVehicles, assetUrl } from "../../api/api";
 import api from "../../api/api";
 import Navbar from "../../components/Navbar";
-import { FaPlus, FaBook, FaSearch, FaTrash, FaEye, FaGasPump, FaTag } from "react-icons/fa";
+import {
+  FaPlus,
+  FaBook,
+  FaSearch,
+  FaEye,
+  FaTag,
+  FaCheckCircle,
+  FaTimesCircle
+} from "react-icons/fa";
 
 export default function OwnerVehicles() {
   const navigate = useNavigate();
@@ -27,17 +35,47 @@ export default function OwnerVehicles() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this vehicle?")) return;
+const handleToggleAvailability = async (
+  vehicleId,
+  currentStatus
+) => {
 
-    try {
-      await api.delete(`/owner/vehicles/${id}`);
-      alert("Vehicle deleted");
-      fetchVehicles();
-    } catch (err) {
-      alert("Failed to delete vehicle");
-    }
-  };
+  try {
+
+    const newStatus =
+      currentStatus === "AVAILABLE"
+        ? "UNAVAILABLE"
+        : "AVAILABLE";
+
+    await api.patch(
+      `/owner/vehicles/${vehicleId}/availability`,
+      {
+        availability_status:
+          newStatus,
+      }
+    );
+
+    setVehicles((prev) =>
+      prev.map((vehicle) =>
+        vehicle.id === vehicleId
+          ? {
+              ...vehicle,
+              availability_status:
+                newStatus,
+            }
+          : vehicle
+      )
+    );
+
+  } catch (error) {
+
+    alert(
+      "Failed to update availability"
+    );
+
+  }
+
+};
 
   const filteredVehicles = vehicles.filter((v) => {
     const query = search.toLowerCase();
@@ -119,11 +157,34 @@ export default function OwnerVehicles() {
                     className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />
                   <div className="absolute top-4 right-4 flex flex-col gap-2">
-                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border backdrop-blur-md ${
-                      v.status === 'APPROVED' ? 'bg-emerald-500/80 text-white border-emerald-400' : 'bg-amber-500/80 text-white border-amber-400'
-                    }`}>
-                      {v.status}
-                    </span>
+                    <div className="flex flex-col gap-2">
+
+  <span
+    className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border backdrop-blur-md ${
+      v.status === "APPROVED"
+        ? "bg-emerald-500/80 text-white border-emerald-400"
+        : "bg-amber-500/80 text-white border-amber-400"
+    }`}
+  >
+
+    {v.status}
+
+  </span>
+
+  <span
+    className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border backdrop-blur-md ${
+      v.availability_status ===
+      "AVAILABLE"
+        ? "bg-blue-500/80 text-white border-blue-400"
+        : "bg-rose-500/80 text-white border-rose-400"
+    }`}
+  >
+
+    {v.availability_status}
+
+  </span>
+
+</div>
                   </div>
                 </div>
 
@@ -146,26 +207,60 @@ export default function OwnerVehicles() {
                       <FaTag className="text-slate-300" /> {v.vehicle_number}
                     </div>
                     <div className="flex items-center gap-2 text-slate-500 text-xs font-bold justify-end">
-                      <div className={`w-2 h-2 rounded-full ${v.availability_status === 'Available' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                      <div className={`w-2 h-2 rounded-full ${v.availability_status === 'AVAILABLE' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
                       {v.availability_status}
                     </div>
                   </div>
+<div className="flex gap-3 mt-auto pt-4">
 
-                  <div className="flex gap-3 mt-auto pt-4">
-                    <button
-                      onClick={() => navigate(`/owner/view-vehicle/${v.id}`)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-slate-50 text-slate-900 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-95"
-                    >
-                      <FaEye /> View
-                    </button>
+  {/* VIEW BUTTON */}
+  <button
+    onClick={() =>
+      navigate(
+        `/owner/view-vehicle/${v.id}`
+      )
+    }
+    className="flex-1 flex items-center justify-center gap-2 bg-slate-50 text-slate-900 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-95"
+  >
 
-                    <button
-                      onClick={() => handleDelete(v.id)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-rose-50 text-rose-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all active:scale-95"
-                    >
-                      <FaTrash /> Delete
-                    </button>
-                  </div>
+    <FaEye />
+
+    View
+
+  </button>
+
+  {/* AVAILABILITY TOGGLE */}
+  <button
+    onClick={() =>
+      handleToggleAvailability(
+        v.id,
+        v.availability_status
+      )
+    }
+    className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 ${
+      v.availability_status ===
+      "AVAILABLE"
+        ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white"
+        : "bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white"
+    }`}
+  >
+
+    {v.availability_status ===
+    "AVAILABLE" ? (
+      <>
+        <FaCheckCircle />
+        Available
+      </>
+    ) : (
+      <>
+        <FaTimesCircle />
+        Unavailable
+      </>
+    )}
+
+  </button>
+
+</div>
                 </div>
               </div>
             ))}

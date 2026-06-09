@@ -175,7 +175,7 @@ export default function AllVehicles() {
                       onClick={() => {
   if (!isAuthenticated) {
     alert("Please login first");
-    navigate("/login");
+    navigate("/user-login");
     return;
   }
   navigate(`/vehicles/${vehicle.vehicle_id}`);

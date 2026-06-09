@@ -2,7 +2,21 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api, { assetUrl } from "../../api/api";
 import Navbar from "../../components/Navbar";
-import { FaChevronLeft, FaChevronRight, FaFileAlt, FaUser, FaCar, FaClock, FaArrowLeft, FaReceipt, FaExternalLinkAlt } from "react-icons/fa";
+import {
+  FaChevronLeft,
+  FaChevronRight,
+  FaFileAlt,
+  FaUser,
+  FaCar,
+  FaClock,
+  FaArrowLeft,
+  FaReceipt,
+  FaExternalLinkAlt,
+  FaCheck,
+  FaTimes,
+  FaMapMarkerAlt,
+  FaEnvelope,
+} from "react-icons/fa";
 
 export default function OwnerBookingDetails() {
   const { id } = useParams();
@@ -11,6 +25,14 @@ export default function OwnerBookingDetails() {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(false);
   const [currentImage, setCurrentImage] = useState(0);
+
+  const [actionLoading, setActionLoading] = useState(false);
+
+const [rejectReason, setRejectReason] =
+  useState("");
+
+const [showRejectBox, setShowRejectBox] =
+  useState(false);
 
   useEffect(() => {
     fetchBooking();
@@ -28,6 +50,77 @@ export default function OwnerBookingDetails() {
       setLoading(false);
     }
   };
+
+  const approveBooking = async () => {
+
+  try {
+
+    setActionLoading(true);
+
+    const res = await api.patch(
+      `/owner/bookings/${id}/approve`
+    );
+
+    alert(res.data.message);
+
+    fetchBooking();
+
+  } catch (err) {
+
+    alert(
+      err.response?.data?.message ||
+      "Approval failed"
+    );
+
+  } finally {
+
+    setActionLoading(false);
+
+  }
+
+};
+
+const rejectBooking = async () => {
+
+  if (!rejectReason.trim()) {
+
+    alert("Enter rejection reason");
+
+    return;
+
+  }
+
+  try {
+
+    setActionLoading(true);
+
+    const res = await api.patch(
+      `/owner/bookings/${id}/reject`,
+      {
+        reason: rejectReason,
+      }
+    );
+
+    alert(res.data.message);
+
+    setShowRejectBox(false);
+
+    fetchBooking();
+
+  } catch (err) {
+
+    alert(
+      err.response?.data?.message ||
+      "Reject failed"
+    );
+
+  } finally {
+
+    setActionLoading(false);
+
+  }
+
+};
 
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-slate-50">
@@ -194,6 +287,45 @@ export default function OwnerBookingDetails() {
                   </div>
                 </div>
 
+                {/* DRIVER INFO */}
+<div className="bg-slate-50 p-4 rounded-2xl">
+
+  <div className="flex items-center gap-3 mb-3">
+
+    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-blue-600">
+
+      <FaCar />
+
+    </div>
+
+    <div>
+
+      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+
+        Driver Name
+
+      </p>
+
+      <p className="font-bold text-slate-800">
+
+        {booking.driver_name}
+
+      </p>
+
+    </div>
+
+  </div>
+
+  <div className="flex items-center gap-2 text-sm text-slate-600">
+
+    <FaEnvelope className="text-blue-500" />
+
+    {booking.customer_email}
+
+  </div>
+
+</div>
+
                 {/* Timeline */}
                 <div className="bg-slate-50 p-3 md:p-4 rounded-2xl">
                   <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">Timeline</p>
@@ -210,18 +342,139 @@ export default function OwnerBookingDetails() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="bg-slate-50 p-3 rounded-2xl text-center">
                     <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Duration</span>
                     <p className="text-sm md:text-lg font-black text-slate-700">{booking.total_days} Days</p>
                   </div>
+
                   <div className="bg-slate-50 p-3 rounded-2xl text-center">
-                    <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Late Fees</span>
-                    <p className="text-sm md:text-lg font-black text-red-500">₹{booking.late_fee}</p>
-                  </div>
+
+  <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">
+
+    Booking Type
+
+  </span>
+
+  <p className="text-sm md:text-lg font-black text-blue-600">
+
+    {booking.booking_type}
+
+  </p>
+
+</div>
+               
                 </div>
               </div>
 
+{/* PICKUP LOCATION */}
+<div className="bg-slate-50 p-4 rounded-2xl">
+
+  <div className="flex items-center gap-2 mb-2">
+
+    <FaMapMarkerAlt className="text-blue-600" />
+
+    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+
+      Pickup Location
+
+    </p>
+
+  </div>
+
+  <p className="text-sm font-medium text-slate-700 leading-relaxed">
+
+    {booking.pickup_address || "Pickup location available"}
+
+  </p>
+
+  {booking.pickup_map_link && (
+
+    <a
+      href={booking.pickup_map_link}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-4 inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider"
+    >
+
+      Open Map
+
+      <FaExternalLinkAlt />
+
+    </a>
+
+  )}
+
+</div>
+
+{/* ACTIONS */}
+{booking.status === "PENDING" && (
+
+  <div className="space-y-4 mb-8">
+
+    <div className="grid grid-cols-2 gap-4">
+
+      <button
+        onClick={approveBooking}
+        disabled={actionLoading}
+        className="bg-green-600 text-white py-4 rounded-2xl font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-green-700 transition-all"
+      >
+
+        <FaCheck />
+
+        Approve
+
+      </button>
+
+      <button
+        onClick={() =>
+          setShowRejectBox(
+            !showRejectBox
+          )
+        }
+        className="bg-red-600 text-white py-4 rounded-2xl font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-red-700 transition-all"
+      >
+
+        <FaTimes />
+
+        Reject
+
+      </button>
+
+    </div>
+
+    {showRejectBox && (
+
+      <div className="bg-red-50 border border-red-100 p-4 rounded-2xl space-y-4">
+
+        <textarea
+          placeholder="Enter rejection reason..."
+          value={rejectReason}
+          onChange={(e) =>
+            setRejectReason(
+              e.target.value
+            )
+          }
+          className="w-full h-28 rounded-2xl border border-red-100 p-4 outline-none resize-none"
+        />
+
+        <button
+          onClick={rejectBooking}
+          disabled={actionLoading}
+          className="w-full bg-red-600 text-white py-3 rounded-2xl font-black uppercase tracking-wider"
+        >
+
+          Confirm Rejection
+
+        </button>
+
+      </div>
+
+    )}
+
+  </div>
+
+)}
               {/* Status Message */}
               <p className="text-center text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
                 Processed on {new Date(booking.start_datetime).toDateString()}

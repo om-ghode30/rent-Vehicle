@@ -6,6 +6,8 @@ import UserLogin from "./pages/Comman/UserLogin";
 import UserReg from "./pages/Comman/UserReg";
 import Otp from "./pages/Comman/otp";
 import Home from "./pages/Home";
+import UserOTPLogin from "./pages/Comman/UserOTPLogin";
+import SearchedVehicles from "./pages/User/SearchedVehicles";
 
 import AdminLayout from "./pages/Admin/AdminLayout";
 import Dashboard from "./pages/Admin/Dashboard";
@@ -30,34 +32,107 @@ import MyBookings from "./pages/User/MyBookings";
 import ChatRoom from "./pages/Chat/ChatRoom";
 
 function UserProtected({ children }) {
-  const { isAuthenticated, loading } = useData();
 
-  if (loading) return <div>Loading...</div>;
+  const {
+    isAuthenticated,
+    loading,
+  } = useData();
 
+  // WAIT until auth check finishes
+  if (loading) {
+
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+
+  }
+
+  // AFTER loading complete
   if (!isAuthenticated) {
-    alert("Please login first"); // 🔥 your requirement
-    return <Navigate to="/login" replace />;
+
+    return (
+      <Navigate
+        to="/user-login"
+        replace
+      />
+    );
+
   }
 
   return children;
+
 }
 
 function PublicRoute({ children }) {
-  const { isAuthenticated, role, loading } = useData();
 
-  if (loading) return <div>Loading...</div>;
+  const {
+    isAuthenticated,
+    role,
+    loading,
+  } = useData();
 
+  if (loading) {
+
+    return <div>Loading...</div>;
+
+  }
+
+  // =========================
+  // ALREADY LOGGED IN
+  // =========================
   if (isAuthenticated) {
-    // 🔥 Role-based redirect
-    if (role === "admin") {
-      return <Navigate to="/admin/dashboard" replace />;
+
+    // ADMIN
+    if (
+      String(role).toLowerCase() ===
+      "admin"
+    ) {
+
+      return (
+        <Navigate
+          to="/admin/dashboard"
+          replace
+        />
+      );
+
     }
 
-    // USER & OWNER → Home
-    return <Navigate to="/" replace />;
+    // OWNER
+    if (
+      String(role).toLowerCase() ===
+      "owner"
+    ) {
+
+      return (
+        <Navigate
+          to="/owner/vehicles"
+          replace
+        />
+      );
+
+    }
+
+    // USER
+    if (
+      String(role).toLowerCase() ===
+      "user"
+    ) {
+
+      return (
+        <Navigate
+          to="/"
+          replace
+        />
+      );
+
+    }
+
   }
 
   return children;
+
 }
 
 function AdminProtected({ children }) {
@@ -82,6 +157,64 @@ function OwnerProtected({ children }) {
   if (String(role).toLowerCase() !== "owner") return <Navigate to="/" replace />;
 
   return children;
+}
+
+function HomeRedirect() {
+
+  const {
+    isAuthenticated,
+    role,
+    loading,
+  } = useData();
+
+  if (loading) {
+
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+
+  }
+
+  // =========================
+  // OWNER SHOULD NOT ACCESS HOME
+  // =========================
+  if (
+    isAuthenticated &&
+    String(role).toLowerCase() ===
+      "owner"
+  ) {
+
+    return (
+      <Navigate
+        to="/owner/vehicles"
+        replace
+      />
+    );
+
+  }
+
+  // =========================
+  // ADMIN SHOULD NOT ACCESS HOME
+  // =========================
+  if (
+    isAuthenticated &&
+    String(role).toLowerCase() ===
+      "admin"
+  ) {
+
+    return (
+      <Navigate
+        to="/admin/dashboard"
+        replace
+      />
+    );
+
+  }
+
+  return <Home />;
+
 }
 
 function AppRoutes() {
@@ -116,6 +249,15 @@ function AppRoutes() {
   }
 />
 
+<Route
+  path="/user-login"
+  element={
+    <PublicRoute>
+      <UserOTPLogin />
+    </PublicRoute>
+  }
+/>
+
         {/* Admin protected routes */}
         <Route
           path="/admin/*"
@@ -138,7 +280,10 @@ function AppRoutes() {
         </Route>
 
   {/* Default & 404 */}
-  <Route path="/" element={<Home />} />
+<Route
+  path="/"
+  element={<HomeRedirect />}
+/>
 
         {/* Owner routes */}
         <Route path="/owner/vehicles" element={<OwnerProtected><OwnerVehicles /></OwnerProtected>} />
@@ -149,7 +294,10 @@ function AppRoutes() {
         <Route path="*" element={<div className="p-20 text-center text-2xl">404 - Page Not Found</div>} />
 
               {/* USER */}
-<Route path="/vehicles" element={<AllVehicles />} />
+<Route
+  path="/vehicles"
+  element={<SearchedVehicles />}
+/>
 
 <Route
   path="/vehicles/:id"
