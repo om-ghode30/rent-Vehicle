@@ -26,7 +26,8 @@ console.log("🌍 ENV PORT:", process.env.PORT);
 // ✅ FIXED CORS (IMPORTANT)
 app.use(cors({
   origin: [
-    "http://localhost:5173",
+    "https://www.bike-rent.in",
+    "https://bike-rent.in",
     "https://rent-vehicle-nine.vercel.app"
   ],
   credentials: true
@@ -47,7 +48,8 @@ app.use(express.static("public"));
 const io = new Server(server, {
   cors: {
      origin: [
-    "http://localhost:5173",
+     "https://www.bike-rent.in",
+    "https://bike-rent.in",
     "https://rent-vehicle-nine.vercel.app"
   ],
     credentials: true
@@ -79,6 +81,7 @@ const bookingRoutes = require("./src/modules/booking/booking.routes");
 const commonRoutes = require("./src/modules/common/common.routes");
 const ownerRoutes = require("./src/modules/owner/owner.routes");
 const chatRoutes = require("./src/modules/chat/chat.routes");
+const userRoutes = require("./src/modules/user/user.routes");
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/public", publicRoutes);
@@ -86,6 +89,8 @@ app.use("/api/booking", bookingRoutes);
 app.use("/api/common", commonRoutes);
 app.use("/api/owner", ownerRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/user", userRoutes);
+
 
 // ✅ Health check route (IMPORTANT for Railway)
 app.get("/", (req, res) => {
