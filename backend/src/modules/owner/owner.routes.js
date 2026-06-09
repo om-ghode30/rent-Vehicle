@@ -22,9 +22,14 @@ router.post(
 
 router.get("/vehicles", controller.getMyVehicles);
 router.get("/bookings", controller.getOwnerBookings);
+router.get("/bookings/pending", controller.getPendingBookings);
 router.get("/bookings/:id", controller.getOwnerBookingDetails);
 router.get("/bookings/:id/license", controller.getBookingLicense);
 router.get("/bookings/:id/aadhar", controller.getUserAadhar);
+router.patch("/bookings/:id/approve", controller.approveBooking);
+router.patch("/bookings/:id/reject", controller.rejectBooking);
+
+
 router.patch("/vehicles/:id/availability", controller.toggleAvailability);
 router.delete("/vehicles/:id", controller.deleteVehicle);
 router.get("/vehicles/:id", controller.getOwnerVehicleDetails);

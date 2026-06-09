@@ -1,4 +1,5 @@
 const { decryptFile } = require("../../utils/fileEncryption");
+const { downloadAndDecryptFile } = require("../../utils/fileEncryption");
 const db = require("../../config/db");
 const fs = require("fs");
 const { encryptFile } = require("../../utils/fileEncryption");
@@ -13,41 +14,46 @@ async function getOne(query, params) {
 // ADD VEHICLE
 // =====================================
 exports.addVehicle = async (req, res) => {
-  const { brand, model_name, price_per_day, vehicle_number } = req.body;
-  const ownerId = req.user.id;
-
+  const conn = await db.getConnection();
   try {
-    const owner = await getOne(`SELECT isApproved FROM users WHERE id = ?`, [ownerId]);
+  const ownerId = req.user.id;
+  const { vehicle_number,brand,model_name,hourly_price,daily_price,pickup_address,pickup_map_link } = req.body;
+  // files
+  const rc = req.files?.rc?.[0];
+  const insurance = req.files?.insurance?.[0];
+  const puc = req.files?.puc?.[0];
+  const noc = req.files?.noc?.[0];
+  const images = req.files?.images || [];
 
-    if (!owner || owner.isApproved === 0) {
-      return res.status(403).json({
-        success: false,
-        message: "Owner not approved by admin"
-      });
+    if (!vehicle_number||!brand||!model_name||!hourly_price||!daily_price||!pickup_address||
+        !pickup_map_link) {
+      return res.status(400).json({ success: false, message: "All details required" });
     }
-
-    if (!brand || !model_name || !price_per_day || !vehicle_number) {
-      return res.status(400).json({ success: false, message: "All fields required" });
+    if (!rc||!puc||!noc||!insurance||images.length===0) {
+      return res.status(400).json({ success: false, message: "All files required" });
     }
+    await conn.beginTransaction();
+    const [existingRows] =
+      await conn.query(`
+        SELECT id
+        FROM vehicles
+        WHERE vehicle_number = ?
+        LIMIT 1
+      `, [vehicle_number]);
 
-    if (!req.files?.images || req.files.images.length !== 5) {
-      return res.status(400).json({
-        success: false,
-        message: "Exactly 5 vehicle images required"
-      });
+    if (existingRows[0]) {
+      await conn.rollback();
+      return res.status(400).json({ success: false, message: "Vehicle already exists"});
     }
 
     // Insert vehicle into MySQL
-    const [result] = await db.query(`
+    const [result] = await conn.query(`
       INSERT INTO vehicles (
-        owner_id,
-        vehicle_number,
-        brand,
-        model_name,
-        price_per_day
+        owner_id,vehicle_number,brand,model_name,hourly_price,daily_price,
+        pickup_address,pickup_map_link,status,availability_status
       )
-      VALUES (?, ?, ?, ?, ?)
-    `, [ownerId, vehicle_number, brand, model_name, price_per_day]);
+      VALUES (?,?,?,?, ?,?,?,?,'PENDING','AVAILABLE')
+    `, [ownerId, vehicle_number, brand, model_name, hourly_price, daily_price, pickup_address, pickup_map_link]);
 
     const vehicleId = result.insertId;
 
@@ -56,17 +62,17 @@ exports.addVehicle = async (req, res) => {
     const uploads = [];
 
     // Document uploads
-    uploads.push(encryptFile(req.files.rc[0].path, `${vehicleFolder}/rc`));
-    uploads.push(encryptFile(req.files.insurance[0].path, `${vehicleFolder}/insurance`));
-    uploads.push(encryptFile(req.files.puc[0].path, `${vehicleFolder}/puc`));
-    uploads.push(encryptFile(req.files.noc[0].path, `${vehicleFolder}/noc`));
+    uploads.push(encryptFile(rc.path, `${vehicleFolder}/rc`));
+    uploads.push(encryptFile(insurance.path, `${vehicleFolder}/insurance`));
+    uploads.push(encryptFile(puc.path, `${vehicleFolder}/puc`));
+    uploads.push(encryptFile(noc.path, `${vehicleFolder}/noc`));
 
     // Image uploads
-    req.files.images.forEach((file, index) => {
+    images.forEach((file, index) => {
       uploads.push(encryptFile(file.path, `${vehicleFolder}/image${index + 1}`));
     });
-
     await Promise.all(uploads);
+    await conn.commit();
 
     res.json({
       success: true,
@@ -74,6 +80,7 @@ exports.addVehicle = async (req, res) => {
     });
 
   } catch (error) {
+    await conn.rollback();
     if (error.code === 'ER_DUP_ENTRY' || error.message.includes("UNIQUE")) {
       return res.status(400).json({
         success: false,
@@ -81,6 +88,8 @@ exports.addVehicle = async (req, res) => {
       });
     }
     res.status(500).json({ success: false, message: error.message });
+  } finally{
+    conn.release();
   }
 };
 
@@ -92,9 +101,8 @@ exports.getMyVehicles = async (req, res) => {
 
   try {
     const [vehicles] = await db.query(
-      "SELECT * FROM vehicles WHERE owner_id = ?", 
-      [ownerId]
-    );
+      "SELECT * FROM vehicles WHERE owner_id = ? ORDER BY created_at DESC", 
+      [ownerId]);
 
     const data = vehicles.map(v => ({
       ...v,
@@ -115,23 +123,27 @@ exports.deleteVehicle = async (req, res) => {
   const vehicleId = req.params.id;
 
   try {
-    const vehicle = await getOne(`
+    const [vehicleRows] = await db.query(`
       SELECT id FROM vehicles WHERE id = ? AND owner_id = ?
     `, [vehicleId, ownerId]);
+
+    const vehicle = vehicleRows[0];
 
     if (!vehicle) {
       return res.status(404).json({ success: false, message: "Vehicle not found" });
     }
 
-    const activeBooking = await getOne(`
+    const [bookingRows] = await db.query(`
       SELECT id FROM bookings
-      WHERE vehicle_id = ? AND status IN ('CONFIRMED','READY_TO_DELIVER')
+      WHERE vehicle_id = ? AND status IN ( 'PENDING','CONFIRMED','READY_TO_DELIVER') LIMIT 1
     `, [vehicleId]);
+    
+    const activeBooking = bookingRows[0];
 
     if (activeBooking) {
       return res.status(400).json({
         success: false,
-        message: "Cannot delete vehicle with active bookings"
+        message: "Vehicle has active bookings"
       });
     }
 
@@ -157,19 +169,16 @@ exports.getOwnerVehicleDetails = async (req, res) => {
   const vehicleId = req.params.id;
 
   try {
-    const vehicle = await getOne(`
-      SELECT * FROM vehicles WHERE id = ? AND owner_id = ?
-    `, [vehicleId, ownerId]);
-
+    const [rows] = await db.query(`SELECT * FROM vehicles WHERE id = ? AND owner_id = ?`, [vehicleId, ownerId]);
+    const vehicle = rows[0];
     if (!vehicle) {
       return res.status(404).json({ success: false, message: "Vehicle not found" });
     }
 
     const images = Array.from({ length: 5 }, (_, i) => `/api/owner/vehicles/${vehicleId}/image${i + 1}`);
-
     res.json({
       success: true,
-      data: { vehicle, images }
+      data: { ...vehicle, images }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -185,15 +194,15 @@ exports.getOwnerBookings = async (req, res) => {
   try {
     const [bookings] = await db.query(`
       SELECT 
-        b.id as booking_id, b.start_datetime, b.end_datetime, 
-        b.total_price, b.status, v.id as vehicle_id, 
-        v.vehicle_number, v.brand, v.model_name,
-        u.name as user_name, u.phone_number as user_phone
+        b.id as booking_id, b.start_datetime, b.end_datetime, b.booking_type, 
+        b.total_days, b.total_price, b.driver_name, b.status, b.created_at, 
+        v.id as vehicle_id, v.vehicle_number, v.brand, v.model_name,
+        bu.email as customer_email 
       FROM bookings b
       JOIN vehicles v ON b.vehicle_id = v.id
-      JOIN users u ON b.user_id = u.id
+      JOIN booking_users bu ON b.booking_user_id = bu.id
       WHERE v.owner_id = ?
-      ORDER BY b.start_datetime DESC
+      ORDER BY b.created_at DESC
     `, [ownerId]);
 
     const data = bookings.map(b => ({
@@ -215,21 +224,22 @@ exports.getOwnerBookingDetails = async (req, res) => { // Added async
   const bookingId = req.params.id;
 
   try {
-    const booking = await getOne(`
+    const [rows] = await db.query(`
       SELECT b.*, 
              v.vehicle_number,
-             v.brand,
-             v.model_name,
-             u.id as user_id,
-             u.name as user_name,
-             u.phone_number
+       v.brand,
+       v.model_name,
+       v.pickup_address,
+       v.pickup_map_link,
+             bu.id as booking_user_id,
+            bu.email as customer_email
       FROM bookings b
       JOIN vehicles v ON b.vehicle_id = v.id
-      JOIN users u ON b.user_id = u.id
+      JOIN booking_users bu ON b.booking_user_id = bu.id
       WHERE b.id = ?
-        AND v.owner_id = ?
+        AND v.owner_id = ? LIMIT 1
     `, [bookingId, ownerId]);
-
+    const booking = rows[0];
     if (!booking) {
       return res.status(404).json({
         success: false,
@@ -264,10 +274,11 @@ exports.toggleAvailability = async (req, res) => { // Added async
   const ownerId = req.user.id;
 
   try {
-    const vehicle = await getOne(
-      "SELECT id FROM vehicles WHERE id = ? AND owner_id = ?", 
+    const [rows] = await db.query(`
+      SELECT id FROM vehicles WHERE id = ? AND owner_id = ? LIMIT 1`, 
       [vehicleId, ownerId]
     );
+    const vehicle = rows[0];
 
     if (!vehicle) {
       return res.status(404).json({
@@ -336,13 +347,13 @@ exports.getBookingLicense = async (req, res) => {
   const bookingId = req.params.id;
 
   try {
-    const booking = await getOne(`
-      SELECT b.id
-      FROM bookings b
+    const [rows] = await db.query(`
+      SELECT b.license_url FROM bookings b
       JOIN vehicles v ON b.vehicle_id = v.id
-      WHERE b.id = ?
-        AND v.owner_id = ?
+      WHERE b.id = ? AND v.owner_id = ? LIMIT 1
     `, [bookingId, ownerId]);
+    
+    const booking = rows[0];
 
     if (!booking) {
       return res.status(404).json({
@@ -351,8 +362,7 @@ exports.getBookingLicense = async (req, res) => {
       });
     }
 
-    const filePath = `bookings/${bookingId}/license`;
-    const decryptedBuffer = await decryptFile(filePath);
+    const decryptedBuffer = await downloadAndDecryptFile(booking.license_url);
 
     res.setHeader("Content-Type", "image/jpeg");
     res.send(decryptedBuffer);
@@ -373,13 +383,13 @@ exports.getUserAadhar = async (req, res) => {
   const bookingId = req.params.id;
 
   try {
-    const booking = await getOne(`
-      SELECT b.user_id
-      FROM bookings b
+    const [rows] = await db.query(`
+      SELECT b.aadhar_url FROM bookings b
       JOIN vehicles v ON b.vehicle_id = v.id
-      WHERE b.id = ?
-        AND v.owner_id = ?
+      WHERE b.id = ? AND v.owner_id = ?
     `, [bookingId, ownerId]);
+
+    const booking = rows[0];
 
     if (!booking) {
       return res.status(404).json({
@@ -388,8 +398,7 @@ exports.getUserAadhar = async (req, res) => {
       });
     }
 
-    const filePath = `users/${booking.user_id}/aadhar`;
-    const decryptedBuffer = await decryptFile(filePath);
+    const decryptedBuffer = await downloadAndDecryptFile(booking.aadhar_url);
 
     res.setHeader("Content-Type", "image/jpeg");
     res.send(decryptedBuffer);
@@ -400,4 +409,94 @@ exports.getUserAadhar = async (req, res) => {
     }
     return res.status(500).json({ success: false, message: "Failed to load image" });
   }
+};
+
+exports.getPendingBookings = async (req, res) => {
+  const ownerId = req.user.id;
+  try {
+    const [bookings] = await db.query(`
+      SELECT b.id as booking_id, b.booking_type,
+        b.start_datetime, b.end_datetime,
+        b.total_days, b.total_price,
+        b.driver_name, b.status,
+        b.created_at,
+        v.id as vehicle_id, v.vehicle_number,
+        v.brand, v.model_name,
+        bu.email as customer_email
+      FROM bookings b
+      JOIN vehicles v ON b.vehicle_id = v.id
+      JOIN booking_users bu ON b.booking_user_id = bu.id
+      WHERE v.owner_id = ? AND b.status = 'PENDING'
+      ORDER BY b.created_at DESC
+    `, [ownerId]);
+
+    const data = bookings.map(booking => ({
+      ...booking,vehicle_image: `/api/owner/vehicles/${booking.vehicle_id}/image1`
+    }));
+
+    res.json({success: true,data});
+  } catch (error) {
+    res.status(500).json({success: false, message: error.message});
+  }
+};
+
+exports.approveBooking = async (req, res) => {
+  const ownerId = req.user.id;
+  const bookingId = req.params.id;
+  try {
+    const [rows] = await db.query(`
+      SELECT b.id, b.status FROM bookings b
+      JOIN vehicles v ON b.vehicle_id = v.id
+      WHERE b.id = ? AND v.owner_id = ?
+      LIMIT 1
+    `, [bookingId, ownerId]);
+    const booking = rows[0];
+
+    if (!booking) {
+      return res.status(404).json({success: false, message: "Booking not found"});
+    }
+
+    if (booking.status !== "PENDING") {
+      return res.status(400).json({success: false,  message: "Only pending bookings can be approved"});
+    }
+    await db.query(`UPDATE bookings SET status = 'CONFIRMED' WHERE id = ?
+    `, [bookingId]);
+    res.json({success: true, message: "Booking approved"});
+  } catch (error) {
+    res.status(500).json({success: false, message: error.message });
+  }
+};
+
+exports.rejectBooking = async (req, res) => {
+  const ownerId = req.user.id;
+  const bookingId = req.params.id;
+  const { reason } = req.body;
+
+  try {
+    if (!reason) {
+      return res.status(400).json({success: false, message: "Rejection reason required"});
+    }
+
+    const [rows] = await db.query(`
+      SELECT b.id, b.status FROM bookings b
+      JOIN vehicles v ON b.vehicle_id = v.id
+      WHERE b.id = ? AND v.owner_id = ? LIMIT 1
+    `, [bookingId, ownerId]);
+    const booking = rows[0];
+
+    if (!booking) {
+      return res.status(404).json({success: false, message: "Booking not found"});
+    }
+
+    if (booking.status !== "PENDING") {
+      return res.status(400).json({ success: false, message:"Only pending bookings can be rejected"});
+    }
+    await db.query(`UPDATE bookings SET status = 'REJECTED',rejection_reason = ? WHERE id = ?
+    `, [reason,bookingId]);
+
+    res.json({success: true, message: "Booking rejected"});
+
+  } catch (error) {
+     res.status(500).json({success: false, message: error.message}); 
+    }
 };

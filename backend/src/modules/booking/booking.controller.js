@@ -1,8 +1,10 @@
 const db = require("../../config/db");
 const fs = require("fs");
+const { encryptAndUploadFile} = require("../../utils/fileEncryption");
 const { encryptFile } = require("../../utils/fileEncryption");
 const { processPayment } = require("../../services/payment.service");
 const { acquireVehicleLock, releaseVehicleLock } = require("../../services/lock.service");
+const dayjs = require("dayjs");
 
 // Helper for single row fetching
 async function getOne(conn, query, params) {
@@ -10,43 +12,32 @@ async function getOne(conn, query, params) {
   return rows[0] || null;
 }
 
-// =================================
-// CREATE BOOKING
-// =================================
+
 exports.createBooking = async (req, res) => {
   const conn = await db.getConnection();
   let lockAcquired = false;
-
-  const userId = req.user.id;
-  const { vehicle_id, start_datetime, end_datetime, driver_name } = req.body;
-
-  if (!vehicle_id || !start_datetime || !end_datetime || !req.file || !driver_name) {
-    return res.status(400).json({
-      success: false,
-      message: "All fields including license required"
-    });
-  }
-
   try {
-    await conn.beginTransaction();
+    const bookingUserId = req.user.id;
+    const { vehicle_id, booking_type, pickup_datetime, days, driver_name } = req.body;
+    // files
+    const license = req.files?.license?.[0];
+    const aadhar = req.files?.aadhar?.[0];
+    console.log(pickup_datetime);
 
-    // 1. User check
-    const user = await getOne(conn,
-      `SELECT isApproved FROM users WHERE id = ?`,
-      [userId]
-    );
-
-    if (!user || user.isApproved === 0) {
-      await conn.rollback();
-      return res.status(403).json({
+    // validation
+    if (!vehicle_id || !booking_type || !pickup_datetime || !driver_name || !license || !aadhar) {
+      return res.status(400).json({
         success: false,
-        message: "User not approved"
+        message: "Missing required fields"
       });
     }
 
-    // 2. Vehicle check
+    await conn.beginTransaction();
+
+    // vehicle
     const vehicle = await getOne(conn, `
-      SELECT * FROM vehicles 
+      SELECT *
+      FROM vehicles
       WHERE id = ?
         AND status = 'APPROVED'
         AND availability_status = 'AVAILABLE'
@@ -57,56 +48,89 @@ exports.createBooking = async (req, res) => {
       await conn.rollback();
       return res.status(400).json({
         success: false,
-        message: "Vehicle not available"
+        message: "Vehicle unavailable"
       });
     }
 
-    // 3. Date validation
-    const start = new Date(start_datetime);
-    const end = new Date(end_datetime);
+    // pickup
+    const pickup =
+  dayjs(
+    pickup_datetime,
+    "YYYY-MM-DDTHH:mm:ss"
+  );
+  // console.log(pickup);
+    if (!pickup.isValid()) {
+  await conn.rollback();
+  return res.status(400).json({
+    success: false,
+    message: "Invalid pickup datetime"
+  });
+}
+    let drop;
+    let totalDays;
+    let totalPrice;
 
-    if (end <= start) {
+
+    // HOURLY AND DAILY
+    if (booking_type === "HOURLY") {
+      drop = pickup.add(8, "hour");
+      totalDays = 1;
+      totalPrice = vehicle.hourly_price;
+    }
+    else if (booking_type === "DAILY") {
+      
+      if (!days || Number(days) < 1) {
+        await conn.rollback();
+        return res.status(400).json({
+          success: false,
+          message: "Invalid days"
+        });
+      }
+
+      totalDays = Number(days);
+      drop = pickup.add(totalDays, "day");
+      totalPrice = totalDays * vehicle.daily_price;
+    }
+    else {
       await conn.rollback();
       return res.status(400).json({
         success: false,
-        message: "Invalid date range"
+        message: "Invalid booking type"
       });
     }
 
-    const diffHours = (end - start) / (1000 * 60 * 60);
-
-    if (diffHours < 12) {
-      await conn.rollback();
-      return res.status(400).json({
-        success: false,
-        message: "Minimum booking is 12 hours"
-      });
-    }
-
-    const totalDays = Math.ceil(diffHours / 24);
-    const totalPrice = totalDays * vehicle.price_per_day;
-
-    // 4. Overlap check
+    // overlap check
     const overlap = await getOne(conn, `
-      SELECT id FROM bookings
+      SELECT id
+      FROM bookings
       WHERE vehicle_id = ?
-        AND status IN ('CONFIRMED','PENDING','READY_TO_DELIVER')
+        AND status IN (
+          'PENDING',
+          'CONFIRMED',
+          'READY_TO_DELIVER'
+        )
         AND (
-          start_datetime < DATE_ADD(?, INTERVAL 1 HOUR)
+          start_datetime < ?
           AND end_datetime > ?
         )
-    `, [vehicle_id, end_datetime, start_datetime]);
+    `, [
+      vehicle_id,
+      drop.format("YYYY-MM-DD HH:mm:ss"),
+      pickup.format("YYYY-MM-DD HH:mm:ss")
+    ]);
 
     if (overlap) {
       await conn.rollback();
       return res.status(400).json({
         success: false,
-        message: "Vehicle already booked in selected dates"
+        message:
+          "Vehicle already booked"
       });
     }
 
-    // 5. Lock
-    const lockResult = await acquireVehicleLock(vehicle_id);
+    // lock
+    const lockResult =
+      await acquireVehicleLock(vehicle_id);
     if (!lockResult.success) {
       await conn.rollback();
       return res.status(400).json({
@@ -114,253 +138,403 @@ exports.createBooking = async (req, res) => {
         message: lockResult.message
       });
     }
-
     lockAcquired = true;
 
-    // 6. Insert booking
+    // insert booking first
     const [result] = await conn.query(`
       INSERT INTO bookings (
-        user_id,
-        vehicle_id,
-        start_datetime,
-        end_datetime,
-        total_days,
-        total_price,
-        status,
-        d_name
+        booking_user_id, vehicle_id,
+        booking_type,
+        start_datetime,  end_datetime,
+        total_days, total_price,
+        driver_name, status
       )
-      VALUES (?, ?, ?, ?, ?, ?, 'PENDING', ?)
-    `, [userId, vehicle_id, start_datetime, end_datetime, totalDays, totalPrice, driver_name]);
+      VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED' )
+    `, [ bookingUserId, vehicle_id, booking_type, pickup.format("YYYY-MM-DD HH:mm:ss"), drop.format("YYYY-MM-DD HH:mm:ss"), totalDays, totalPrice, driver_name]);
 
-    const bookingId = result.insertId;
+    const bookingId =
+      result.insertId;
 
-    // 7. File save
-    try {
-      await encryptFile(req.file.path, `bookings/${bookingId}/license`);
-    } catch (error) {
-      await conn.rollback();
-      if (lockAcquired) {  await releaseVehicleLock(vehicle_id);}
-      return res.status(500).json({
-        success: false,
-        message: "Failed to process license image"
-      });
-    }
+    // upload files
+    const licenseUpload =
+      await encryptAndUploadFile(
+        license.path,
+        `${bookingId}_license.enc`
+      );
 
-    // 8. Payment
-    let paymentResponse;
-    try {
-      paymentResponse = await processPayment(totalPrice, bookingId);
-    } catch (error) {
-      await conn.rollback();
-      if (lockAcquired) {  await releaseVehicleLock(vehicle_id);}
-      return res.status(500).json({
-        success: false,
-        message: "Payment processing error"
-      });
-    }
+    const aadharUpload =
+      await encryptAndUploadFile(
+        aadhar.path,
+        `${bookingId}_aadhar.enc`
+      );
 
-    if (!paymentResponse.success) {
-      await conn.rollback();
-      if (lockAcquired) {  await releaseVehicleLock(vehicle_id);}
-      return res.json({
-        success: false,
-        message: "Payment failed"
-      });
-    }
-
-    // 9. Confirm booking
+    // save URLs
     await conn.query(`
-      UPDATE bookings SET status = 'CONFIRMED'
+      UPDATE bookings
+      SET
+        license_url = ?,
+        aadhar_url = ?
       WHERE id = ?
-    `, [bookingId]);
+    `, [
+      licenseUpload.secure_url,
+      aadharUpload.secure_url,
+      bookingId
+    ]);
 
     await conn.commit();
 
-    if (lockAcquired) {  await releaseVehicleLock(vehicle_id);}
+    if (lockAcquired) {
+      await releaseVehicleLock(
+        vehicle_id
+      );
+    }
 
     res.json({
       success: true,
-      message: "Booking created successfully",
       booking_id: bookingId,
-      total_days: totalDays,
-      total_price: totalPrice
+      total_price: totalPrice,
+      pickup: pickup.format("YYYY-MM-DD HH:mm:ss"),
+      drop: drop.format("YYYY-MM-DD HH:mm:ss")
     });
 
-  } catch (err) {
+  } catch (error) {
     await conn.rollback();
-    if (lockAcquired) {  await releaseVehicleLock(vehicle_id);}
-
+    if (lockAcquired) {
+      await releaseVehicleLock(
+        vehicle_id
+      );
+    }
     res.status(500).json({
       success: false,
-      message: err.message
+      message: error.message
     });
-
   } finally {
     conn.release();
   }
 };
 
 // =====================================
-// GET MY BOOKINGS
+// CHECK AVAILABILITY
 // =====================================
-exports.getMyBookings = async (req, res) => { // Added async
+exports.checkAvailability = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const {vehicle_id, booking_type, pickup_datetime, days} = req.body;
 
-    const [bookings] = await db.query(`
-      SELECT b.*, v.vehicle_number, v.brand, v.model_name
-      FROM bookings b
-      JOIN vehicles v ON b.vehicle_id = v.id
-      WHERE b.user_id = ?
-      ORDER BY b.created_at DESC
-    `, [userId]);
+    // validation
+    if (!vehicle_id || !booking_type || !pickup_datetime) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing fields"
+      });
+    }
 
-    res.json({  
+    // vehicle
+    const [rows] = await db.query(`
+  SELECT *
+  FROM vehicles
+  WHERE id = ?
+    AND status = 'APPROVED'
+    AND availability_status = 'AVAILABLE'
+    AND isBlocked = 0`, [vehicle_id]);
+
+const vehicle = rows[0];
+
+    if (!vehicle) {
+
+      return res.status(400).json({
+        success: false,
+        available: false,
+        message: "Vehicle unavailable"
+      });
+    }
+
+    // pickup
+    const pickup = dayjs(pickup_datetime);
+    if (!pickup.isValid()) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid datetime"
+      });
+    }
+
+    let drop;
+    // HOURLY
+    if (booking_type === "HOURLY") {
+      drop = pickup.add(8, "hour");
+    }
+    else if (booking_type === "DAILY") {
+      if (!days || Number(days) < 1) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid days"
+        });
+      }
+      drop = pickup.add(Number(days),"day");
+    }
+    else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid booking type"
+      });
+    }
+
+    // overlap check
+    const [overlapRows] = await db.query(`
+      SELECT id
+      FROM bookings
+      WHERE vehicle_id = ?
+        AND status IN (
+          'PENDING',
+          'CONFIRMED',
+          'READY_TO_DELIVER'
+        )
+        AND (
+          start_datetime < ?
+          AND end_datetime > ?
+        )
+      LIMIT 1
+    `, [vehicle_id, drop.format("YYYY-MM-DD HH:mm:ss"), pickup.format("YYYY-MM-DD HH:mm:ss") ]);
+    const overlap = overlapRows[0];
+    if (overlap) {
+
+      return res.json({
+        success: true,
+        available: false,
+        message: "Vehicle already booked"
+      });
+    }
+
+    res.json({
       success: true,
-      data: bookings
+      available: true,
+      pickup:
+        pickup.format(
+          "YYYY-MM-DD HH:mm:ss"
+        ),
+      drop:
+        drop.format(
+          "YYYY-MM-DD HH:mm:ss"
+        )
     });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+
   }
 };
 
 // =====================================
-// CANCEL BOOKING (CORE LOGIC PRESERVED)
+// GET MY BOOKINGS
 // =====================================
-exports.cancelBooking = async (req, res) => { // Added async
-  try {
-    const bookingId = req.params.id;
-    const userId = req.user.id;
+exports.getMyBookings=async(req,res)=>{
 
-    // 1. Fetch booking with ownership check
+  try{
+
+    const bookingUserId=req.user.id;
+
+    const [bookings]=await db.query(`
+      SELECT
+        b.id,
+        b.booking_type,
+        b.start_datetime,
+        b.end_datetime,
+        b.total_days,
+        b.total_price,
+        b.driver_name,
+        b.status,
+        b.created_at,
+        v.id as vehicle_id,
+        v.vehicle_number,
+        v.brand,
+        v.pickup_address,
+        v.model_name,
+        v.hourly_price,
+        v.daily_price,
+        v.pickup_map_link
+      FROM bookings b
+      JOIN vehicles v
+        ON b.vehicle_id=v.id
+      WHERE b.booking_user_id=?
+      ORDER BY b.created_at DESC
+    `,[bookingUserId]);
+
+    res.json({
+      success:true,
+      data:bookings
+    });
+
+  }catch(error){
+
+    res.status(500).json({
+      success:false,
+      message:error.message
+    });
+
+  }
+};
+// =====================================
+// GET PARTICULAR BOOKING
+// =====================================
+exports.getPerticularBooking = async (req, res) => {
+
+  try {
+
+    const bookingId = req.params.id;
+
+    const bookingUserId = req.user.id;
+
     const [rows] = await db.query(`
-      SELECT * FROM bookings
-      WHERE id = ? AND user_id = ?
-    `, [bookingId, userId]);
+
+      SELECT 
+        b.id as booking_id, 
+        b.booking_type,
+        b.start_datetime, b.end_datetime,
+        b.total_days, b.total_price,
+        b.driver_name,
+        b.aadhar_url, b.license_url,
+        b.status, b.created_at,
+
+        v.id as vehicle_id,
+        v.vehicle_number,
+        v.brand, v.model_name,
+        v.hourly_price, v.daily_price,
+        v.pickup_address,v.pickup_map_link,
+
+        o.id as owner_id,
+        o.name as owner_name,
+        o.phone_number
+
+      FROM bookings b
+
+      JOIN vehicles v
+        ON b.vehicle_id = v.id
+
+      JOIN users o
+        ON v.owner_id = o.id
+
+      WHERE
+        b.id = ?
+        AND b.booking_user_id = ?
+
+      LIMIT 1
+
+    `, [bookingId, bookingUserId]);
 
     const booking = rows[0];
 
     if (!booking) {
+
       return res.status(404).json({
         success: false,
         message: "Booking not found"
       });
     }
 
-    // 2. Status check
-    if (["CANCELLED", "COMPLETED"].includes(booking.status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Booking cannot be cancelled"
-      });
-    }
-
-    // 3. Start time check
-    const now = new Date();
-    const start = new Date(booking.start_datetime);
-
-    if (now >= start) {
-      return res.status(400).json({
-        success: false,
-        message: "Booking already started. Cannot cancel."
-      });
-    }
-
-    // 4. Refund calculation logic (PRESERVED)
-    const diffHours = (start - now) / (1000 * 60 * 60);
-    let refundPercent = 0;
-
-    if (diffHours > 48) refundPercent = 100;
-    else if (diffHours > 24) refundPercent = 70;
-    else if (diffHours > 12) refundPercent = 50;
-    else refundPercent = 0;
-
-    const refundAmount = (booking.total_price * refundPercent) / 100;
-
-    // 5. Database updates
-    if (refundAmount > 0) {
-      await db.query(`
-        INSERT INTO pending_payments (
-          booking_id,
-          user_id,
-          amount,
-          type
-        )
-        VALUES (?, ?, ?, 'REFUND_TO_USER')
-      `, [bookingId, userId, refundAmount]);
-    }
-
-    await db.query(`
-      UPDATE bookings SET status = 'CANCELLED'
-      WHERE id = ?
-    `, [bookingId]);
-
     res.json({
       success: true,
-      message: "Booking cancelled",
-      refund_percent: refundPercent,
-      refund_amount: refundAmount
+      data: booking
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+
   }
 };
 
-// =====================================
-// GET PARTICULAR BOOKING
-// =====================================
-exports.getPerticularBooking = async (req, res) => { // Added async
-  try {
-    const bookingId = req.params.id;
-    const userId = req.user.id;
 
-    const [rows] = await db.query(`
-      SELECT 
-        b.id as booking_id,
-        b.start_datetime,
-        b.end_datetime,
-        b.total_price,
-        b.status,
-        b.d_name,
+exports.getVehicleAvailability =
+  async (req, res) => {
 
-        v.id as vehicle_id,
-        v.vehicle_number,
-        v.brand,
-        v.model_name,
+    const vehicleId =
+      req.params.id;
 
-        o.name as owner_name,
-        o.address,
-        o.phone_number
+    try {
 
-      FROM bookings b
-      JOIN vehicles v ON b.vehicle_id = v.id
-      JOIN users o ON v.owner_id = o.id
+      const dates = [];
 
-      WHERE b.id = ? AND b.user_id = ?
-    `, [bookingId, userId]);
-    const booking=rows[0];
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking not found"
+      for (let i = 0; i < 5; i++) {
+
+        const current =
+          new Date();
+
+        current.setDate(
+          current.getDate() + i
+        );
+
+        const start =
+          new Date(current);
+
+        start.setHours(0,0,0,0);
+
+        const end =
+          new Date(current);
+
+        end.setHours(
+          23,59,59,999
+        );
+
+        const [rows] =
+          await db.query(
+            `
+            SELECT id
+            FROM bookings
+            WHERE vehicle_id = ?
+            AND status IN (
+              'PENDING',
+              'CONFIRMED'
+            )
+            AND start_datetime <= ?
+            AND end_datetime >= ?
+            LIMIT 1
+            `,
+            [
+              vehicleId,
+              end,
+              start
+            ]
+          );
+
+        dates.push({
+
+          day:
+            current.toLocaleDateString(
+              "en-IN",
+              {
+                weekday: "short",
+              }
+            ),
+
+          date:
+            current.getDate(),
+
+          booked:
+            rows.length > 0,
+
+        });
+
+      }
+
+      res.json({
+        success: true,
+        data: dates,
       });
+
+    } catch (error) {
+
+      res.status(500).json({
+        success: false,
+        message:
+          error.message,
+      });
+
     }
 
-    // Image logic preserved
-    const images = Array.from({ length: 5 }, (_, i) => 
-      `/api/common/vehicles/${booking.vehicle_id}/docs/image${i + 1}`
-    );
-
-    res.json({
-      success: true,
-      data: {
-        ...booking,
-        vehicle_images: images
-      }
-    });
-
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
 };

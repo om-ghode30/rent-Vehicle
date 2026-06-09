@@ -131,6 +131,8 @@ const login = async (req, res) => {
     );
 
     // 5. Set Cookie and Respond
+    res.clearCookie("booking_token");
+    
     res.cookie("token", token, {
       httpOnly: true,
       secure: true, // Set to true if using HTTPS
@@ -223,7 +225,8 @@ const getVehicleDetailsPublic = async (req, res) => {
 
   try {
     const vehicle = await getOne(`
-      SELECT id, vehicle_number, brand, model_name, price_per_day
+      SELECT id, vehicle_number, brand, model_name, price_per_day, 
+      pickup_address, pickup_map_link, hourly_price, daily_price
       FROM vehicles WHERE id = ? AND status = 'APPROVED' AND isBlocked = 0
     `, [vehicleId]);
 
@@ -421,8 +424,8 @@ const verifyOTP = async (req, res) => {
     }
 
     // 3. Mark as Verified
-    console.log(`[${requestId}] [OTP_VERIFY] OTP Valid. Updating 'is_verified' to 1 for record ID: ${record.id}`);
-    await db.query(`UPDATE otp_verifications SET is_verified = 1 WHERE id = ?`, [record.id]);
+    console.log(`[${requestId}] [OTP_VERIFY] OTP Valid. Updating 'is_used' to 1 for record ID: ${record.id}`);
+    await db.query(`UPDATE otp_verifications SET is_used = 1 WHERE id = ?`, [record.id]);
 
     console.log(`[${requestId}] [OTP_VERIFY] Success: OTP verified.`);
     res.json({ success: true, message: "OTP verified" });

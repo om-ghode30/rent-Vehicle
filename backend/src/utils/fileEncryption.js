@@ -68,4 +68,80 @@ console.log("Decrypted length:",decrypted.length);
   }
 }
 
-module.exports = { encryptFile, decryptFile };
+async function encryptAndUploadFile(inputPath,fileName) {
+
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(algorithm,secretKey,iv);
+
+  // read original file
+  const input = fs.readFileSync(inputPath);
+
+  // encrypt
+  const encrypted = Buffer.concat([cipher.update(input),cipher.final()]);
+
+  // prepend IV
+  const finalData = Buffer.concat([iv,encrypted]);
+
+  // temp encrypted file
+  const tempEncrypted = `${inputPath}.enc`;
+
+  fs.writeFileSync(
+    tempEncrypted,
+    finalData
+  );
+
+  // upload
+  const result =
+    await cloudinary.uploader.upload(
+      tempEncrypted,
+      {
+        resource_type: "raw",
+        public_id:
+          `rental-vehicle/${fileName}`,
+        overwrite: true
+      }
+    );
+
+  // cleanup
+  fs.unlinkSync(inputPath);
+  fs.unlinkSync(tempEncrypted);
+
+  // RETURN URL
+  return {
+    secure_url: result.secure_url,
+    public_id: result.public_id
+  };
+}
+
+async function downloadAndDecryptFile(fileUrl) {
+
+  const response = await fetch(fileUrl);
+  if (!response.ok) {
+    const err = new Error("FILE_NOT_FOUND");
+    err.status = 404;
+    throw err;
+  }
+
+  // file buffer
+  const fileData = Buffer.from(
+    await response.arrayBuffer()
+  );
+
+  // IV
+  const iv = fileData.slice(0, 16);
+
+  // encrypted data
+  const encryptedData = fileData.slice(16);
+
+  // decrypt
+  const decipher = crypto.createDecipheriv(algorithm,secretKey,iv);
+
+  const decrypted = Buffer.concat([
+    decipher.update(encryptedData),
+    decipher.final()
+  ]);
+
+  return decrypted;
+}
+
+module.exports = { encryptFile, decryptFile, encryptAndUploadFile, downloadAndDecryptFile };
