@@ -27,7 +27,18 @@ export default function VehicleDetails() {
   const [loading, setLoading] = useState(true);
 
 const [pickupDatetime, setPickupDatetime] =
-  useState("");
+  useState(() => {
+    const now = new Date();
+    const offset =
+      now.getTimezoneOffset();
+
+    return new Date(
+      now.getTime() -
+        offset * 60000
+    )
+      .toISOString()
+      .slice(0, 16);
+  });
   const [dropDatetime, setDropDatetime] =
   useState("");
 
@@ -633,15 +644,22 @@ if (bookingType === "DAILY") {
     </label>
 
     <input
-      type="datetime-local"
-      value={pickupDatetime}
-      onChange={(e) =>
-        setPickupDatetime(
-          e.target.value
-        )
-      }
-      className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-    />
+  type="datetime-local"
+  value={pickupDatetime}
+  min={new Date(
+    Date.now() -
+      new Date().getTimezoneOffset() *
+        60000
+  )
+    .toISOString()
+    .slice(0, 16)}
+  onChange={(e) =>
+    setPickupDatetime(
+      e.target.value
+    )
+  }
+  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+/>
 
   </div>
 

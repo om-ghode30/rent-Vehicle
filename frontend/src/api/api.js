@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: "https://rent-vehicle-zw86.onrender.com/api",
   withCredentials: true, // 🔥 REQUIRED for cookies
 });
 
@@ -12,7 +12,7 @@ export const assetUrl = (path) => {
 
   const base = API.defaults?.baseURL
     ? API.defaults.baseURL.replace(/\/api\/?$/, "")
-    : "http://localhost:5000";
+    : "ttps://rent-vehicle-zw86.onrender.com";
 
   return `${base}${path}`;
 };

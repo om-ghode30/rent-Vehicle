@@ -3,7 +3,7 @@ import axios from "axios";
 // 🔥 CHANGE THIS BASE URL WHEN NEEDED
 // const BASE_URL = "http://172.26.192.1:5000";
 const BASE_URL = "https://b44b-2409-40c2-12a8-d59d-352f-189a-3b28-70a4.ngrok-free.app";
-// const BASE_URL = "http://localhost:5000";
+// const BASE_URL = "https://rent-vehicle-zw86.onrender.com";
 // Axios instance
 const API = axios.create({
   baseURL: `${BASE_URL}/api`,
