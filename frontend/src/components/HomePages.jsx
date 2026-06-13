@@ -186,7 +186,7 @@ function HomePages() {
 
                     <p className="text-white text-2xl font-black">
 
-                      ₹{vehicle.price_per_day}
+                      ₹{vehicle.daily_price}
 
                       <span className="text-sm text-zinc-300 font-medium">
 
@@ -386,7 +386,7 @@ function HomePages() {
 
                           <p className="text-2xl font-black text-slate-900">
 
-                            ₹{vehicle.price_per_day}
+                            ₹{vehicle.daily_price}
 
                             <span className="text-xs text-slate-400 font-medium">
 

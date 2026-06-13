@@ -12,7 +12,7 @@ export const assetUrl = (path) => {
 
   const base = API.defaults?.baseURL
     ? API.defaults.baseURL.replace(/\/api\/?$/, "")
-    : "ttps://rent-vehicle-zw86.onrender.com";
+    : "https://rent-vehicle-zw86.onrender.com";
 
   return `${base}${path}`;
 };

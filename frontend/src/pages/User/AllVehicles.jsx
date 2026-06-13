@@ -167,7 +167,7 @@ export default function AllVehicles() {
                     <div className="flex justify-between items-end mb-4">
                       <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Starting at</p>
-                        <p className="text-2xl font-black text-slate-900">₹{vehicle.price_per_day}<span className="text-xs text-slate-400 font-medium">/day</span></p>
+                        <p className="text-2xl font-black text-slate-900">₹{vehicle.daily_price}<span className="text-xs text-slate-400 font-medium">/day</span></p>
                       </div>
                     </div>
 

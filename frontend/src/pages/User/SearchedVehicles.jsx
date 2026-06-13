@@ -301,7 +301,7 @@ const [maxPrice, setMaxPrice] =
                         <p className="text-2xl font-black">
 
                           ₹{
-                            vehicle.price_per_day
+                            vehicle.daily_price
                           }
 
                         </p>
