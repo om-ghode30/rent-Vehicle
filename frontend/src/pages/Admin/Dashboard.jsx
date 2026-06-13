@@ -114,7 +114,7 @@ export default function Dashboard() {
               label: "Review Vehicles", 
               path: "/admin/pending-vehicles", 
               bg: "bg-blue-50 text-blue-700", 
-              desc: "Verify car details and documents." 
+              desc: "Verify Bike details and documents." 
             },
             { 
               label: "Approve Users", 

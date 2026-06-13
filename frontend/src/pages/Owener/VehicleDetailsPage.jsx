@@ -6,11 +6,14 @@ import Navbar from "../../components/Navbar";
 export default function VehicleDetailsPage() {
     const navigate = useNavigate();
     const [form, setForm] = useState({
-        brand: '',
-        model_name: '',
-        vehicle_number: '',
-        price_per_day: ''
-    });
+    brand: '',
+    model_name: '',
+    vehicle_number: '',
+    hourly_price: '',
+    daily_price: '',
+    pickup_address: '',
+    pickup_map_link: ''
+});
 
     const [rc, setRc] = useState(null);
     const [insurance, setInsurance] = useState(null);
@@ -26,26 +29,37 @@ export default function VehicleDetailsPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!form.brand || !form.model_name || !form.vehicle_number || !form.price_per_day) {
-            alert('Please fill all required fields');
-            return;
-        }
+        if (
+    !form.brand ||
+    !form.model_name ||
+    !form.vehicle_number ||
+    !form.hourly_price ||
+    !form.daily_price ||
+    !form.pickup_address ||
+    !form.pickup_map_link
+) {
+    alert("Please fill all required fields");
+    return;
+}
 
         if (!rc || !insurance || !puc || !noc) {
             alert('Please upload RC, Insurance, PUC and NOC documents');
             return;
         }
 
-        if (images.length !== 5) {
-            alert('Please upload exactly 5 vehicle images');
-            return;
-        }
+       if (images.length === 0) {
+    alert("Please upload at least one vehicle image");
+    return;
+}
 
         const data = new FormData();
         data.append('brand', form.brand);
         data.append('model_name', form.model_name);
         data.append('vehicle_number', form.vehicle_number);
-        data.append('price_per_day', form.price_per_day);
+       data.append('hourly_price', form.hourly_price);
+data.append('daily_price', form.daily_price);
+data.append('pickup_address', form.pickup_address);
+data.append('pickup_map_link', form.pickup_map_link);
 
         data.append('rc', rc);
         data.append('insurance', insurance);
@@ -96,10 +110,71 @@ export default function VehicleDetailsPage() {
                             Basic Information
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <input name="brand" placeholder="Brand (e.g. Toyota)" value={form.brand} onChange={handleChange} required className="w-full border border-slate-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50/50 transition-all" />
-                            <input name="model_name" placeholder="Model (e.g. Camry)" value={form.model_name} onChange={handleChange} required className="w-full border border-slate-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50/50 transition-all" />
-                            <input name="vehicle_number" placeholder="Vehicle Number (e.g. MH12AB1234)" value={form.vehicle_number} onChange={handleChange} required className="w-full border border-slate-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50/50 transition-all" />
-                            <input name="price_per_day" type="number" placeholder="Price Per Day (₹)" value={form.price_per_day} onChange={handleChange} required className="w-full border border-slate-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50/50 transition-all" />
+                           <input
+    name="brand"
+    placeholder="Brand (e.g. Honda)"
+    value={form.brand}
+    onChange={handleChange}
+    required
+    className="w-full border border-slate-200 p-4 rounded-xl"
+/>
+
+<input
+    name="model_name"
+    placeholder="Model (e.g. Activa 6G)"
+    value={form.model_name}
+    onChange={handleChange}
+    required
+    className="w-full border border-slate-200 p-4 rounded-xl"
+/>
+
+<input
+    name="vehicle_number"
+    placeholder="Vehicle Number"
+    value={form.vehicle_number}
+    onChange={handleChange}
+    required
+    className="w-full border border-slate-200 p-4 rounded-xl"
+/>
+
+<input
+    type="number"
+    name="hourly_price"
+    placeholder="Hourly Price (₹)"
+    value={form.hourly_price}
+    onChange={handleChange}
+    required
+    className="w-full border border-slate-200 p-4 rounded-xl"
+/>
+
+<input
+    type="number"
+    name="daily_price"
+    placeholder="Daily Price (₹)"
+    value={form.daily_price}
+    onChange={handleChange}
+    required
+    className="w-full border border-slate-200 p-4 rounded-xl"
+/>
+
+<input
+    name="pickup_map_link"
+    placeholder="Google Maps Link"
+    value={form.pickup_map_link}
+    onChange={handleChange}
+    required
+    className="w-full border border-slate-200 p-4 rounded-xl"
+/>
+
+<textarea
+    name="pickup_address"
+    placeholder="Pickup Address"
+    value={form.pickup_address}
+    onChange={handleChange}
+    required
+    rows={3}
+    className="md:col-span-2 w-full border border-slate-200 p-4 rounded-xl resize-none"
+/>
                         </div>
                     </div>
 
@@ -138,7 +213,7 @@ export default function VehicleDetailsPage() {
                                 Vehicle Photos
                             </h3>
                             <span className={`text-xs font-bold px-2 py-1 rounded-md ${images.length === 5 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                {images.length} / 5 Selected
+                                {images.length} Selected
                             </span>
                         </div>
                         <div className="p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/30 text-center">
@@ -150,7 +225,7 @@ export default function VehicleDetailsPage() {
                                 required 
                                 className="text-sm w-full file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer" 
                             />
-                            <p className="text-xs text-slate-400 mt-3 font-medium italic">Please upload exactly 5 high-quality images of the vehicle.</p>
+                            <p className="text-xs text-slate-400 mt-3 font-medium italic">Upload at least one clear image of the vehicle.</p>
                         </div>
                     </div>
 

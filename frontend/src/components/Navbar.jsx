@@ -4,7 +4,7 @@ import { DataContext } from "../context/DataContext";
 import {
   FaBars,
   FaTimes,
-  FaCarSide,
+  FaMotorcycle ,
   FaUserCircle,
   FaSearch,
 } from "react-icons/fa";
@@ -65,10 +65,10 @@ const Navbar = ({ contactRef }) => {
           {/* Logo Section */}
           <Link to="/" className="flex items-center gap-2 group">
             <div className="bg-blue-600 p-2 rounded-lg group-hover:rotate-12 transition-transform duration-300">
-              <FaCarSide className="text-white text-xl" />
+              <FaMotorcycle  className="text-white text-xl" />
             </div>
             <h1 className="text-2xl font-black text-slate-800 tracking-tighter">
-              Rent<span className="text-blue-600">Car</span>
+              Rent<span className="text-blue-600">Bike</span>
             </h1>
           </Link>
 
