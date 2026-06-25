@@ -153,11 +153,12 @@ if (record.is_used) {
     );
     res.clearCookie("token");
     res.cookie("booking_token", token, {
-    httpOnly: true,
-    secure: false, // localhost
-    sameSite: "Lax",
-    maxAge: 30 * 24 * 60 * 60 * 1000
-    });
+  httpOnly: true,
+  secure: true,
+  sameSite: "None",
+  path: "/",
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+});
 
     res.json({
       success: true,
