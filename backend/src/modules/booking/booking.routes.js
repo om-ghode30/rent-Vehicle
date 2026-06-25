@@ -16,6 +16,7 @@ router.post(
 );
 
 router.get("/my", controller.getMyBookings);
+router.get("/l_b_N_P", controller.getl_b_phone_name);
 
 router.post("/check-availability",controller.checkAvailability);
 

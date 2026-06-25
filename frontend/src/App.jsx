@@ -270,8 +270,8 @@ function AppRoutes() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="pending-vehicles" element={<PendingVehicles />} />
           <Route path="users" element={<UsersManagement />} />
-          <Route path="payments" element={<PaymentsManagement />} />
-          <Route path="analytics" element={<Analytics />} />
+          {/* <Route path="payments" element={<PaymentsManagement />} /> */}
+          {/* <Route path="analytics" element={<Analytics />} /> */}
           <Route path="vehicles/:id" element={<VehicleDetails />} />
           <Route path="vehicles/:id/image/:idx" element={<VehicleImageView />} />
           <Route path="owner/:id" element={<OwnerDetails />} />

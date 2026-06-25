@@ -154,8 +154,8 @@ if (record.is_used) {
     res.clearCookie("token");
     res.cookie("booking_token", token, {
     httpOnly: true,
-    secure: true, 
-    sameSite: "None",
+    secure: false, // localhost
+    sameSite: "Lax",
     maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
@@ -212,8 +212,8 @@ exports.logout = async (req, res) => {
 
   res.clearCookie("booking_token", {
     httpOnly: true,
-    secure: true,
-    sameSite: "None"
+    secure: false,
+    sameSite: "Lax"
   });
 
   res.json({

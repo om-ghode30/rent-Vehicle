@@ -22,6 +22,7 @@ logoutBookingUser,
   // ❌ OTP removed from usage (but kept import safe if backend still has it)
   sendMessage as apiSendMessage,
   getMessages as apiGetMessages,
+
 } from "../api/api";
 
 import {
@@ -30,6 +31,7 @@ import {
   createBooking as apiCreateBooking,
   getMyBookings as apiGetMyBookings,
   cancelBooking as apiCancelBooking,
+    getl_b_phone_name as getl_b_phone_name,
 } from "../api/api";
 
 export const DataContext = createContext();
@@ -49,6 +51,7 @@ export const DataProvider = ({ children }) => {
   // ================= USER DATA =================
   const [approvedVehicles, setApprovedVehicles] = useState([]);
   const [myBookings, setMyBookings] = useState([]);
+  const [latestBookingInfo, setLatestBookingInfo] = useState(null);
 
   // ================= LOGIN =================
   const login = async ({ email, password }) => {
@@ -212,6 +215,20 @@ const createBooking = async (formData) => {
     }
   };
 
+
+  const fetchLatestBookingInfo = async () => {
+  try {
+    const res = await getl_b_phone_name();
+
+    return res.data?.data?.[0] || null;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+};
+
+  
+
   const cancelBooking = async (id) => {
     const res = await apiCancelBooking(id);
 
@@ -345,6 +362,9 @@ useEffect(() => {
         createBooking,
         fetchMyBookings,
         cancelBooking,
+latestBookingInfo,
+fetchLatestBookingInfo,
+
 
         // CHAT
         sendChatMessage,

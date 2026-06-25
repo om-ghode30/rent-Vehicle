@@ -75,13 +75,13 @@ export default function AdminLayout() {
             <FaUsers size={18} /> Users
           </NavLink>
 
-          <NavLink to="/admin/payments" onClick={() => setIsSidebarOpen(false)} className={navLinkClasses}>
+          {/* <NavLink to="/admin/payments" onClick={() => setIsSidebarOpen(false)} className={navLinkClasses}>
             <FaCreditCard size={18} /> Payments
-          </NavLink>
+          </NavLink> */}
 
-          <NavLink to="/admin/analytics" onClick={() => setIsSidebarOpen(false)} className={navLinkClasses}>
+          {/* <NavLink to="/admin/analytics" onClick={() => setIsSidebarOpen(false)} className={navLinkClasses}>
             <FaChartBar size={18} /> Analytics
-          </NavLink>
+          </NavLink> */}
 
           <div className="mt-auto pt-10">
             <button

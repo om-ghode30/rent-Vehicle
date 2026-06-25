@@ -2,22 +2,22 @@ const jwt = require("jsonwebtoken");
 
 module.exports = (req, res, next) => {
 
-
-  console.log("Cookies:", req.cookies);
-  console.log("Auth Header:", req.headers.authorization);
-
   let token = null;
 
   // Authorization header
   if (req.headers.authorization) {
-    token =req.headers.authorization.split(" ")[1];
+
+    token =
+      req.headers.authorization.split(" ")[1];
+
   }
 
   // ONLY admin/owner token
   if (!token && req.cookies?.token) {
+
     token = req.cookies.token;
+
   }
-   console.log("Resolved Token:", token);
 
   if (!token) {
 

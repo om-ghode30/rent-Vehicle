@@ -201,7 +201,7 @@ const getApprovedVehicles = async (req, res) => {
         AND (
           v.is_temporarily_locked = 0
           OR v.lock_expiry_time < NOW()
-        ) 
+        )
     `);
 
     console.log(`[${requestId}] [GET_APPROVED_VEHICLES] Query successful. Found ${vehicles.length} vehicles.`);

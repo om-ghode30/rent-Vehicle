@@ -73,6 +73,8 @@ export const getOwnerBookingDetails = (id) =>
 export const toggleVehicleAvailability = (id, body) =>
   API.patch(`/owner/vehicles/${id}/availability`, body);
 
+
+
 // ================= ADMIN: VEHICLES =================
 export const getPendingVehicles = () =>
   API.get("/admin/vehicles/pending");
@@ -214,5 +216,8 @@ export const getMyBookings = () =>
 
 export const cancelBooking = (id) =>
   API.patch(`/booking/${id}/cancel`);
+
+export const getl_b_phone_name = () =>
+  API.get(`/booking/l_b_N_P`);
 
 export default API;

@@ -13,6 +13,7 @@ await connection.query(`
     name VARCHAR(255),
     phone_number VARCHAR(20),
     is_verified BOOLEAN DEFAULT true,
+    isBlocked BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )
 `);

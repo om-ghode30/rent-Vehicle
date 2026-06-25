@@ -1,12 +1,26 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getPendingVehicles, assetUrl } from "../../api/api";
-import { FaCar, FaUser, FaClipboardCheck, FaArrowRight } from "react-icons/fa";
+import {
+  getPendingVehicles,
+  getVehicleAnalytics,
+  toggleVehicleBlocked,
+  assetUrl, // Kept this import as you had it in your snippet
+} from "../../api/api";
+
+import {
+  FaCar,
+  FaUser,
+  FaClipboardCheck,
+  FaArrowRight,
+} from "react-icons/fa";
 
 export default function PendingVehicles() {
-  const [vehicles, setVehicles] = useState([]);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  
+  // State initialization
+  const [vehicles, setVehicles] = useState([]);
+  const [topVehicles, setTopVehicles] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchVehicles();
@@ -14,9 +28,16 @@ export default function PendingVehicles() {
 
   const fetchVehicles = async () => {
     setLoading(true);
+
     try {
-      const res = await getPendingVehicles();
-      setVehicles(res.data?.data || []);
+      // Fetching both pending and analytics data as requested
+      const [pendingRes, analyticsRes] = await Promise.all([
+        getPendingVehicles(),
+        getVehicleAnalytics(),
+      ]);
+
+      setVehicles(pendingRes.data?.data || []);
+      setTopVehicles(analyticsRes.data?.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -24,98 +45,119 @@ export default function PendingVehicles() {
     }
   };
 
-  const handleCardClick = (id) => {
-    navigate(`/admin/vehicles/${id}`);
-  };
-
-  if (loading) return (
-    <div className="flex justify-center items-center h-screen bg-slate-50">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-blue-600 font-black text-xs uppercase tracking-widest">Loading submissions...</p>
+  // Optional: Loading state fallback
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <p className="text-blue-600 font-bold animate-pulse">Loading Vehicles...</p>
       </div>
-    </div>
-  );
-
-  if (!vehicles || vehicles.length === 0) return (
-    <div className="p-4 md:p-10 min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-10 md:p-16 text-center max-w-lg w-full">
-        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-          <FaClipboardCheck className="text-slate-300" size={30} />
-        </div>
-        <h2 className="text-xl font-bold text-slate-800">Queue is Empty</h2>
-        <p className="text-slate-500 mt-2">No vehicles are currently waiting for approval.</p>
-      </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="p-4 md:p-8 space-y-8 bg-slate-50 min-h-screen">
-      {/* Header Area - Mobile Centered */}
-      <div className="text-center md:text-left">
-        <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">
-          Pending <span className="text-blue-600">Vehicles</span>
-        </h1>
-        <p className="text-slate-500 font-medium mt-1">Review listings and verify documentation</p>
-      </div>
+    <div className="space-y-12 pb-20 px-4 md:px-0">
+      {/* ================= TOP VEHICLES ================= */}
+      <section className="pt-8">
+        <div className="flex items-center gap-2 mb-4">
+          <FaCar className="text-slate-400" />
+          <h2 className="text-xl font-bold text-slate-800">
+            Top Vehicles
+          </h2>
+        </div>
 
-      {/* Grid - 1 Col on Mobile, 2 on Tablet, 3 on Desktop */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {vehicles.map((v) => (
-          <div
-            key={v.vehicle_id}
-            onClick={() => handleCardClick(v.vehicle_id)}
-            className="group bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden cursor-pointer hover:shadow-xl hover:border-blue-200 transition-all duration-300 transform md:hover:-translate-y-1 active:scale-95 md:active:scale-100"
-          >
-            {/* Image Wrap */}
-            <div className="relative h-56 sm:h-48 overflow-hidden">
-              <img
-                src={assetUrl(v.image_url)}
-                alt={`${v.brand} ${v.model_name}`}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-              />
-              <div className="absolute top-4 left-4">
-                <span className="bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
-                  Review Needed
-                </span>
-              </div>
-            </div>
+        <div className="bg-white md:rounded-2xl md:shadow-sm md:border border-slate-100 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="hidden md:table-header-group bg-slate-50 text-slate-500">
+              <tr>
+                <th className="p-4 text-left font-bold uppercase tracking-wider text-[10px]">
+                  Vehicle
+                </th>
+                <th className="p-4 text-left font-bold uppercase tracking-wider text-[10px]">
+                  Owner
+                </th>
+                <th className="p-4 text-left font-bold uppercase tracking-wider text-[10px]">
+                  Bookings
+                </th>
+                <th className="p-4 text-left font-bold uppercase tracking-wider text-[10px]">
+                  Actions
+                </th>
+              </tr>
+            </thead>
 
-            {/* Content Wrap */}
-            <div className="p-6">
-              <h3 className="font-black text-xl text-slate-800 leading-tight">
-                {v.brand} {v.model_name}
-              </h3>
+            <tbody className="flex flex-col md:table-row-group gap-4">
+              {topVehicles.map((v) => (
+                <tr
+                  key={v.id || v.vehicle_id}
+                  className="flex flex-col md:table-row bg-white rounded-xl border border-slate-100 md:border-0 md:border-t p-4 md:p-0 shadow-sm md:shadow-none"
+                >
+                  <td className="md:p-4">
+                    <span className="md:hidden text-[10px] font-bold text-slate-400 uppercase block mb-1">
+                      Vehicle
+                    </span>
 
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center gap-3 text-slate-600">
-                  <div className="bg-slate-100 p-2 rounded-lg">
-                    <FaCar className="text-slate-400" size={14} />
-                  </div>
-                  <p className="text-sm font-bold uppercase tracking-widest">
-                    {v.vehicle_number}
-                  </p>
-                </div>
+                    <p className="font-bold text-slate-800">
+                      {v.brand} {v.model_name}
+                    </p>
+                  </td>
 
-                <div className="flex items-center gap-3 text-slate-500">
-                  <div className="bg-slate-100 p-2 rounded-lg">
-                    <FaUser className="text-slate-400" size={14} />
-                  </div>
-                  <p className="text-xs font-medium">
-                    Owner: <span className="text-slate-700 font-bold">{v.owner_name}</span>
-                  </p>
-                </div>
-              </div>
+                  <td className="md:p-4 mt-3 md:mt-0">
+                    <span className="md:hidden text-[10px] font-bold text-slate-400 uppercase block mb-1">
+                      Owner
+                    </span>
 
-              {/* Action Link Footer */}
-              <div className="mt-6 pt-5 border-t border-slate-50 flex items-center justify-between text-blue-600 font-black text-xs uppercase tracking-widest">
-                <span>Examine Documents</span>
-                <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+                    <p className="text-slate-600">
+                      {v.owner_name}
+                    </p>
+                  </td>
+
+                  <td className="md:p-4 mt-3 md:mt-0">
+                    <span className="md:hidden text-[10px] font-bold text-slate-400 uppercase block mb-1">
+                      Total Bookings
+                    </span>
+
+                    <p className="font-black text-blue-600 md:text-lg">
+                      {v.total_bookings}
+                    </p>
+                  </td>
+
+                  <td className="md:p-4 mt-4 md:mt-0 flex items-center justify-between md:justify-start gap-4 border-t pt-4 md:border-0 md:pt-0">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await toggleVehicleBlocked(
+                            v.id || v.vehicle_id,
+                            v.isBlocked
+                          );
+
+                          fetchVehicles();
+                        } catch {
+                          alert("Failed");
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex-1 md:flex-none text-center ${
+                        v.isBlocked === 1
+                          ? "bg-emerald-600 text-white"
+                          : "bg-rose-600 text-white"
+                      }`}
+                    >
+                      {v.isBlocked === 1 ? "Unblock" : "Block"}
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        navigate(`/admin/vehicles/${v.id || v.vehicle_id}`)
+                      }
+                      className="text-blue-600 font-bold text-xs underline underline-offset-4"
+                    >
+                      View Profile
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

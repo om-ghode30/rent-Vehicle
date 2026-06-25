@@ -471,13 +471,12 @@ exports.getAllUsersAnalytics = async (req, res) => { // Added async
       SELECT 
         u.id,
         u.name,
+        u.email,
         u.phone_number,
-        u.address,
         u.isBlocked,
         COUNT(b.id) as bookings_count
-      FROM users u
-      LEFT JOIN bookings b ON b.user_id = u.id
-      WHERE u.role = 'USER'
+      FROM booking_users u
+      LEFT JOIN bookings b ON b.booking_user_id = u.id
       GROUP BY u.id
       ORDER BY bookings_count DESC
     `);
@@ -574,7 +573,7 @@ exports.getUserDetailsFull = async (req, res) => { // Added async
     const userId = req.params.id;
 
     const [userRows] = await db.query(`
-      SELECT * FROM users WHERE id = ?
+      SELECT * FROM booking_users WHERE id = ?
     `, [userId]);
 
     const user = userRows[0];
@@ -588,7 +587,7 @@ exports.getUserDetailsFull = async (req, res) => { // Added async
 
     const [bookings] = await db.query(`
       SELECT id FROM bookings
-      WHERE user_id = ?
+      WHERE booking_user_id = ?
     `, [userId]);
 
     res.json({

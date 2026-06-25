@@ -18,7 +18,9 @@ exports.createBooking = async (req, res) => {
   let lockAcquired = false;
   try {
     const bookingUserId = req.user.id;
-    const { vehicle_id, booking_type, pickup_datetime, days, driver_name } = req.body;
+    // const bookingUserId = 1;
+
+    const { vehicle_id, booking_type, pickup_datetime, days, driver_name,phone_no } = req.body;
     // files
     const license = req.files?.license?.[0];
     const aadhar = req.files?.aadhar?.[0];
@@ -31,6 +33,20 @@ exports.createBooking = async (req, res) => {
         message: "Missing required fields"
       });
     }
+
+    if (!phone_no) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing phone number"
+      });
+    }
+    console.log(driver_name, phone_no);
+    await conn.query(
+      `UPDATE booking_users
+      SET name = ?, phone_number = ?
+      WHERE id = ?`,
+      [driver_name, phone_no, bookingUserId]
+    );
 
     await conn.beginTransaction();
 
@@ -345,6 +361,7 @@ exports.getMyBookings=async(req,res)=>{
         b.total_days,
         b.total_price,
         b.driver_name,
+        b.phone_number,
         b.status,
         b.created_at,
         v.id as vehicle_id,
@@ -376,6 +393,31 @@ exports.getMyBookings=async(req,res)=>{
 
   }
 };
+exports.getl_b_phone_name=async(req,res)=>{
+
+  try{
+    const bookingUserId=req.user.id;
+    const [bookings]=await db.query(`
+      SELECT 
+      name as driver_name, phone_number as phone_no
+      FROM booking_users where id =?;
+      `,[bookingUserId]);
+
+    res.json({
+      success:true,
+      data:bookings
+    });
+
+  }catch(error){
+
+    res.status(500).json({
+      success:false,
+      message:error.message
+    });
+
+  }
+};
+
 // =====================================
 // GET PARTICULAR BOOKING
 // =====================================

@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react";
 import {
-  getPendingVehicles,
-  getPendingUsers,
-  getPendingPayments,
+  getUserAnalytics,
+  getVehicleAnalytics,
+  getOwnerAnalytics, // Imported the correct explicit endpoint
 } from "../../api/api";
 import { useNavigate } from "react-router-dom";
-import { FaCar, FaUsers, FaWallet, FaCheckCircle, FaArrowRight } from "react-icons/fa";
+import { FaCar, FaUsers, FaUserShield, FaCheckCircle, FaArrowRight } from "react-icons/fa";
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({
     vehicles: 0,
+    owners: 0,
     users: 0,
-    payments: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -25,19 +25,23 @@ export default function Dashboard() {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const v = await getPendingVehicles();
-      const u = await getPendingUsers();
-      const p = await getPendingPayments();
+      // Fetching all three dedicated analytical datasets explicitly
+      const [vehicleRes, ownerRes, userRes] = await Promise.all([
+        getVehicleAnalytics(),
+        getOwnerAnalytics(),
+        getUserAnalytics(),
+      ]);
 
-      const vehicleList = v.data?.data || v.data?.vehicles || v.data || [];
-      const userList = u.data?.data || u.data?.users || u.data || [];
-      const paymentList = p.data?.data || p.data?.payments || p.data || [];
-
+      const vehicleList = vehicleRes.data?.data || vehicleRes.data || [];
+      const ownerList = ownerRes.data?.data || ownerRes.data || [];
+      const userList = userRes.data?.data || userRes.data || [];
+      
       setStats({
         vehicles: Array.isArray(vehicleList) ? vehicleList.length : 0,
+        owners: Array.isArray(ownerList) ? ownerList.length : 0,
         users: Array.isArray(userList) ? userList.length : 0,
-        payments: Array.isArray(paymentList) ? paymentList.length : 0,
       });
+      
     } catch (err) {
       console.error("Dashboard stats error:", err);
     } finally {
@@ -63,7 +67,7 @@ export default function Dashboard() {
             Admin <span className="text-blue-600">Dashboard</span>
           </h1>
           <p className="text-slate-500 font-medium mt-1">
-            System overview and pending approvals
+            System overview and total platform registration metrics
           </p>
         </div>
         <button 
@@ -77,7 +81,7 @@ export default function Dashboard() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
-          title="Pending Vehicles"
+          title="Total Vehicles"
           value={stats.vehicles}
           icon={<FaCar size={24} />}
           color="from-blue-600 to-blue-700"
@@ -85,19 +89,19 @@ export default function Dashboard() {
         />
 
         <StatCard
-          title="Pending Users"
+          title="Total Owners"
+          value={stats.owners}
+          icon={<FaUserShield size={24} />}
+          color="from-purple-600 to-purple-700"
+          onClick={() => navigate("/admin/analytics")} 
+        />
+
+        <StatCard
+          title="Total Users"
           value={stats.users}
           icon={<FaUsers size={24} />}
           color="from-emerald-600 to-emerald-700"
           onClick={() => navigate("/admin/users")}
-        />
-
-        <StatCard
-          title="Pending Payments"
-          value={stats.payments}
-          icon={<FaWallet size={24} />}
-          color="from-purple-600 to-purple-700"
-          onClick={() => navigate("/admin/payments")}
         />
       </div>
 
@@ -122,12 +126,12 @@ export default function Dashboard() {
               bg: "bg-emerald-50 text-emerald-700", 
               desc: "KYC verification for new drivers." 
             },
-            { 
-              label: "Manage Payments", 
-              path: "/admin/payments", 
-              bg: "bg-purple-50 text-purple-700", 
-              desc: "Check transactions and refunds." 
-            },
+            // { 
+            //   label: "View Analytics", 
+            //   path: "/admin/analytics", 
+            //   bg: "bg-purple-50 text-purple-700", 
+            //   desc: "Check product tables and active lists." 
+            // },
           ].map((action, idx) => (
             <button
               key={idx}
