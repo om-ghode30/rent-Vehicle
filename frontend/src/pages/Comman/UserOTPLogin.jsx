@@ -332,27 +332,6 @@ const UserOTPLogin = () => {
 
           )}
 
-          {/* Bottom */}
-          <div className="mt-10 pt-6 border-t border-slate-100 text-center">
-
-            <p className="text-sm text-slate-500 font-medium">
-
-              Want to register as vehicle owner?
-
-            </p>
-
-            <Link to="/register">
-
-              <button className="mt-4 text-blue-600 font-black hover:text-blue-800 transition-colors underline underline-offset-4">
-
-                Create Owner Account
-
-              </button>
-
-            </Link>
-
-          </div>
-
         </div>
 
       </div>
