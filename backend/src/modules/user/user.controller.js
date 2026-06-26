@@ -213,8 +213,8 @@ exports.logout = async (req, res) => {
 
   res.clearCookie("booking_token", {
     httpOnly: true,
-    secure: false,
-    sameSite: "Lax"
+    secure: true,
+    sameSite: "None"
   });
 
   res.json({
