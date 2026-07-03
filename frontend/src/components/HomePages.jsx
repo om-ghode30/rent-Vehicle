@@ -109,7 +109,7 @@ function HomePages() {
       
 
       {/* ================= HERO SLIDER ================= */}
-      <div className="relative z-10 overflow-hidden pt-2 pb-10 md:pb-14 bg-gradient-to-b from-slate-950 via-slate-900 to-black">
+      <div className="relative z-10 overflow-hidden pt-6  bg-gradient-to-b from-slate-950 via-slate-900 to-black">
 
         {/* HEADING */}
         <div className="text-center mb-10 px-4">
@@ -452,9 +452,9 @@ function HomePages() {
 
       </div>
       {/* SEO Section */}
-      <section className="bg-zinc-900 border-t border-zinc-800">
-        <div className="max-w-6xl mx-auto px-6 py-10 border-b border-gray-700">
-          <h2 className="text-2xl font-bold text-white mb-4">
+      <section className="bg-zinc-900 ">
+        <div className="max-w-6xl mx-auto py-6 flex flex-col items-center justify-between gap-8   border-b border-zinc-800/50">
+          <h2 className="text-white text-2xl font-black tracking-tighter mb-1">
             Why Choose Bike-Rent.in in Kolhapur?
           </h2>
 
@@ -474,4 +474,4 @@ function HomePages() {
 
 }
 
-export default HomePages;
+export default HomePages; 
