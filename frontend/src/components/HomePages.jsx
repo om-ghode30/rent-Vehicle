@@ -451,6 +451,22 @@ function HomePages() {
         </div>
 
       </div>
+      {/* SEO Section */}
+      <section className="bg-zinc-900 border-t border-zinc-800">
+        <div className="max-w-6xl mx-auto px-6 py-10 border-b border-gray-700">
+          <h2 className="text-2xl font-bold text-white mb-4">
+            Why Choose Bike-Rent.in in Kolhapur?
+          </h2>
+
+          <p className="text-gray-300 leading-8">
+            Bike-Rent.in is a trusted bike rental platform in Kolhapur where you can
+            rent bikes and scooters from verified owners. Book hourly or daily rentals
+            with secure online booking, affordable prices, and flexible pickup options.
+            Whether you're a student, tourist, or local commuter, we make bike rentals
+            simple and reliable.
+          </p>
+        </div>
+      </section>
 
     </div>
 

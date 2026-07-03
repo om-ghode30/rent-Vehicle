@@ -26,7 +26,7 @@ export default function Home() {
         <Navbar contactRef={contactRef} />
       {/* </div> */}
 
-      <div className="pb-10">
+      <div className="">
         <HomePages />
       </div>
 
