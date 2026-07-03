@@ -116,15 +116,18 @@ function HomePages() {
 
           <p className="text-slate-400 font-medium">
 
-            Explore Vehicles
+            Trusted Bike Rental Platform in Kolhapur
 
           </p>
 
           <h1 className="text-3xl md:text-5xl font-black text-white mt-3">
-
-            Ride Any Vehicle
-
+            Bike Rental in Kolhapur
           </h1>
+
+          <p className="text-slate-300 mt-4 max-w-3xl mx-auto">
+            Rent bikes and scooters in Kolhapur with RentV. Choose from verified
+            vehicles for hourly or daily rentals at affordable prices.
+          </p>
 
         </div>
 
