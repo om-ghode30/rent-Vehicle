@@ -19,9 +19,9 @@ function Footer({ contactRef }) {
                         {[
                             { icon: <FaFacebookF />, url: "https://facebook.com", label: "Facebook" },
                             { icon: <FaInstagram />, url: "https://instagram.com", label: "Instagram" },
-                            { icon: <FaYoutube />, url: "https://youtube.com", label: "Youtube" },
-                            { icon: <FaTwitter />, url: "https://twitter.com", label: "Twitter" },
-                            { icon: <FaGithub />, url: "https://github.com", label: "GitHub" },
+                            // { icon: <FaYoutube />, url: "https://youtube.com", label: "Youtube" },
+                            // { icon: <FaTwitter />, url: "https://twitter.com", label: "Twitter" },
+                            // { icon: <FaGithub />, url: "https://github.com", label: "GitHub" },
                         ].map((social, idx) => (
                             <a 
                                 key={idx}
@@ -49,11 +49,11 @@ function Footer({ contactRef }) {
                             <div className="grid grid-cols-1 gap-y-3">
                                 <div className="flex flex-col md:flex-row md:gap-2">
                                     <span className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest">Phone:</span>
-                                    <span className="text-zinc-300 font-semibold">+91 90190 19010</span>
+                                    <span className="text-zinc-300 font-semibold">+91 97656 49556</span>
                                 </div>
                                 <div className="flex flex-col md:flex-row md:gap-2">
                                     <span className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest">Email:</span>
-                                    <span className="text-zinc-300 font-semibold">rentinfo@gmail.com</span>
+                                    <span className="text-zinc-300 font-semibold">caoom30@@gmail.com</span>
                                 </div>
                             </div>
 
