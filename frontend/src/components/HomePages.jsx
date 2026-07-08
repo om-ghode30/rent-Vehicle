@@ -125,8 +125,7 @@ function HomePages() {
           </h1>
 
           <p className="text-slate-300 mt-4 max-w-3xl mx-auto">
-            Rent bikes and scooters in Kolhapur with RentV. Choose from verified
-            vehicles for hourly or daily rentals at affordable prices.
+            Rent bikes and scooters in Kolhapur with BikeRent. Book verified two-wheelers for hourly and daily rentals at affordable prices.
           </p>
 
         </div>
@@ -459,8 +458,8 @@ function HomePages() {
           </h2>
 
           <p className="text-gray-300 leading-8">
-            Bike-Rent.in is a trusted bike rental platform in Kolhapur where you can
-            rent bikes and scooters from verified owners. Book hourly or daily rentals
+            BikeRent is a trusted bike rental platform in Kolhapur. At bike-rent.in, 
+            you can rent bikes and scooters from verified owners. Book hourly or daily rentals
             with secure online booking, affordable prices, and flexible pickup options.
             Whether you're a student, tourist, or local commuter, we make bike rentals
             simple and reliable.

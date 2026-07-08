@@ -11,7 +11,7 @@ function Footer({ contactRef }) {
                     <div className="text-center md:text-left">
                         <h2 className="text-white text-2xl font-black tracking-tighter mb-1">RENT A Bike</h2>
                         <p className="text-zinc-500 text-sm font-medium">
-                            &copy; 2026 Rent A Bike. All rights reserved.
+                            &copy; 2026 BikeRent. All rights reserved.
                         </p>
                     </div>
 
