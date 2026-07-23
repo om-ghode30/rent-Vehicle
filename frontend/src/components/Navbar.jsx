@@ -68,7 +68,7 @@ const Navbar = ({ contactRef }) => {
               <FaMotorcycle  className="text-white text-xl" />
             </div>
             <h1 className="text-2xl font-black text-slate-800 tracking-tighter">
-              Rent<span className="text-blue-600">Bike</span>
+              Bike<span className="text-blue-600">Rent</span>
             </h1>
           </Link>
 
